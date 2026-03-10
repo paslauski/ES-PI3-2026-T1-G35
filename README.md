@@ -27,7 +27,7 @@ Integrantes:
 ISABELA APARECIDA PASLAUSKI PINTO - 25003335
 JOÃO PEDRO BERGAMIN DINIZ - 25007162
 MATEUS DE SOUZA CAMPOS - 25009935
-MATEUS OLIVEIRA RAFAEL - 
+MATEUS OLIVEIRA RAFAEL - 25001369
 
 • Tecnologias utilizadas
 • Instruções claras para execução do sistema em ambiente de testes
