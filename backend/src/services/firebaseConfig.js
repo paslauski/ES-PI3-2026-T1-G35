@@ -1,14 +1,15 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
+// Aqui o código vai "buscar" os valores lá no ficheiro .env
 const firebaseConfig = {
-  apiKey: "AIzaSyCdRNTr7bDWA8_JMD1j9bEIdIVREwn33kU",
-  authDomain: "pi-3--mescla-invest.firebaseapp.com",
-  projectId: "pi-3--mescla-invest",
-  storageBucket: "pi-3--mescla-invest.firebasestorage.app",
-  messagingSenderId: "696645311566",
-  appId: "1:696645311566:web:262642b6ec4224f562771f",
-  measurementId: "G-B5W3JSPEYB"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
