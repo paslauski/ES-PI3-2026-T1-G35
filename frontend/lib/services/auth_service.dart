@@ -6,35 +6,58 @@
 // flutter pub add cloud_firestore
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/usuario_model.dart';
 
 class AuthService {
-  // INSTÂNCIA BD
-  //var chamada _db q guarda a connexao direta com o Firebase
-  // o '_' (underline) antes do nome significa que ela é PRIVADA (só este arquivo pode mexer nela)
-  // final= não apaga e não substitui
+  // INSTÂNCIAS (Duas conexões agora)
+  // _auth = O Cofre de Senhas do Google (Authentication)
+  // _db = O Banco de Dados de Perfil (Firestore)
+  // o '_' (underline) significa que são PRIVADAS (só este arquivo pode mexer nela)
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // MÉTODO ASSÍNCRONO ( ação de cadastrar)
-  // 'Future<void>' significa q vai rolar mas não retorna
-  // 'async' avisa ao flutter q usa net
+  // MÉTODO ASSÍNCRONO (ação de cadastrar com segurança dupla)
   Future<void> cadastrarNovoUsuario(Usuario usuario) async {
-    // BLOCO TRY/CATCH -rede segurança
-    // o 'try' tenta executar o cod e se a net cair, o app não pifa, vai fechar(catch)
+    // BLOCO TRY/CATCH - rede de segurança
     try {
-      print("🚀 Começando o cadastro do ${usuario.nome}...");
+      print("criando a chave de segurança para ${usuario.nome}...");
 
-      //'await': manda o app pausar nesta linha e ESPERAR o Google responder antes de continuar
-      //'_db.collection('usuarios')': procura a coleção 'usuarios'
-      //'.add()': cria um doc novo com um ID aleatorio gerado pelo Google
-      // 'usuario.paraMapa()': transforma a classe Dart num pacote que o Google entende
-      await _db.collection('usuarios').add(usuario.paraMapa());
+      // PASSO 1: CRIA A CONTA NO COFRE DO GOOGLE (Authentication)
+      // O Google vai pegar o email e a senha, criptografar e criar a conta real.
+      // Ele nos devolve uma "Credencial" que tem um ID único e seguro (UID).
+      UserCredential credencial = await _auth.createUserWithEmailAndPassword(
+        email: usuario.email,
+        password: usuario.senha,
+      );
 
-      // await funciona
-      print("✅ Usuário salvo com sucesso no Google!");
+      // PASSO 2: SALVA O PERFIL NO BANCO DE DADOS (Firestore)
+      // Se a credencial deu certo (não é nula)...
+      if (credencial.user != null) {
+        // Pegamos o ID seguro que o Google gerou para essa pessoa:
+        String uidSeguro = credencial.user!.uid;
+
+        // Ao invés de '.add()' (que cria um ID aleatório), usamos '.doc(uidSeguro).set()'
+        // Isso amarra a pasta do banco de dados exatamente à conta de login da pessoa!
+        await _db.collection('usuarios').doc(uidSeguro).set(usuario.paraMapa());
+
+        print("✅ Usuário Autenticado e Perfil salvo com sucesso!");
+      }
+    } on FirebaseAuthException catch (e) {
+      // TRATAMENTO DE ERROS ESPECÍFICOS DO GOOGLE AUTH
+      // O 'on FirebaseAuthException' pega os erros de segurança que o Google joga.
+      if (e.code == 'weak-password') {
+        throw Exception(
+          'A senha fornecida é muito fraca (mínimo 6 caracteres).',
+        );
+      } else if (e.code == 'email-already-in-use') {
+        throw Exception('Este e-mail já está cadastrado no sistema.');
+      } else {
+        throw Exception('Erro de autenticação: ${e.message}');
+      }
     } catch (e) {
-      // se a net falhar ou o Firebase bloquear o acesso, o erro é capturado na var 'e'.
-      print("❌ Erro ao salvar: $e");
+      // Erros gerais (ex: falta de internet)
+      throw Exception('Erro geral ao cadastrar: $e');
     }
   }
 }

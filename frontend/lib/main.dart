@@ -10,6 +10,8 @@ macos     1:696645311566:ios:393bb380c9e23bbf62771f
 windows   1:696645311566:web:8ff7261d8c8dd63362771f
 */
 
+/* cd front -  flutter pub get - flutter clean*/
+
 import 'package:flutter/material.dart'; // ferramentas visuais do google (tela, botão, cores)
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';

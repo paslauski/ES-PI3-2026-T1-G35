@@ -37,7 +37,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCdRNTr7bDWA8_JMD1j9bEIdIVREwn33kU', //senha principal
+    apiKey: 'AIzaSyCdRNTr7bDWA8_JMD1j9bEIdIVREwn33kU',
     appId: '1:696645311566:web:262642b6ec4224f562771f',
     messagingSenderId: '696645311566',
     projectId: 'pi-3--mescla-invest',
@@ -81,4 +81,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'pi-3--mescla-invest.firebasestorage.app',
     measurementId: 'G-F7Y8CK12Z2',
   );
+
 }
