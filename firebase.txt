@@ -1,0 +1,37 @@
+-//isabela
+
+na raiz do projeto
+firebase login
+firebase init functions 
+y/y enter type y enter y entery
+skills? n
+
+rodar local => npm run serve 
+(npm run build) comando interno
+
+
+┌───────────┬────────────────┬─────────────────────────────────┐
+│ Emulator  │ Host:Port      │ View in Emulator UI             │
+├───────────┼────────────────┼─────────────────────────────────┤
+│ Functions │ 127.0.0.1:5001 │ http://127.0.0.1:4000/functions │
+└───────────┴────────────────┴─────────────────────────────────┘
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500
+
+
+cd front
+flutter pub add cloud_functions
+
+
+raiz
+firebase init emulators
+(*) Authentication Emulator
+
+(*) Functions Emulator
+
+(*) Firestore Emulator
+
+
+firebase emulators:start
+
+INSTALAR A PORRA DO JAVA
