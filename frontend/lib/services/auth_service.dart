@@ -1,63 +1,55 @@
-//Isabela
-//fazer a comunicação (a ponte) entre o nosso aplicativo e o banco de dados
+// Isabela
 
-// cd frontend
-// flutter pub add firebase_core
-// flutter pub add cloud_firestore
+// 📌 SERVICE = camada de lógica que conversa com o Firebase
+// (separa a lógica do backend da tela)
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/usuario_model.dart';
 
 class AuthService {
-  // INSTÂNCIAS (Duas conexões agora)
-  // _auth = O Cofre de Senhas do Google (Authentication)
-  // _db = O Banco de Dados de Perfil (Firestore)
-  // o '_' (underline) significa que são PRIVADAS (só este arquivo pode mexer nela)
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  // 🔹 INSTÂNCIAS (conexões com Firebase)
+  final FirebaseAuth _auth = FirebaseAuth.instance; // Auth (login/senha)
+  final FirebaseFirestore _db = FirebaseFirestore.instance; // Banco
 
-  // MÉTODO ASSÍNCRONO (ação de cadastrar com segurança dupla)
+  // 🔹 MÉTODO PRINCIPAL: cadastrar usuário completo
   Future<void> cadastrarNovoUsuario(Usuario usuario) async {
-    // BLOCO TRY/CATCH - rede de segurança
     try {
-      print("criando a chave de segurança para ${usuario.nome}...");
+      print("🔐 Criando conta no Firebase Auth...");
 
-      // PASSO 1: CRIA A CONTA NO COFRE DO GOOGLE (Authentication)
-      // O Google vai pegar o email e a senha, criptografar e criar a conta real.
-      // Ele nos devolve uma "Credencial" que tem um ID único e seguro (UID).
+      // 📌 PASSO 1: cria conta no "cofre do Google"
       UserCredential credencial = await _auth.createUserWithEmailAndPassword(
-        email: usuario.email,
-        password: usuario.senha,
+        email: usuario.email.trim(),
+        password: usuario.senha.trim(),
       );
 
-      // PASSO 2: SALVA O PERFIL NO BANCO DE DADOS (Firestore)
-      // Se a credencial deu certo (não é nula)...
+      print("📦 Salvando perfil no Firestore...");
+
+      // 📌 PASSO 2: salva dados do perfil no banco
       if (credencial.user != null) {
-        // Pegamos o ID seguro que o Google gerou para essa pessoa:
-        String uidSeguro = credencial.user!.uid;
+        String uid = credencial.user!.uid;
 
-        // Ao invés de '.add()' (que cria um ID aleatório), usamos '.doc(uidSeguro).set()'
-        // Isso amarra a pasta do banco de dados exatamente à conta de login da pessoa!
-        await _db.collection('usuarios').doc(uidSeguro).set(usuario.paraMapa());
-
-        print("✅ Usuário Autenticado e Perfil salvo com sucesso!");
+        // usamos o UID como ID do documento (boa prática)
+        await _db.collection('usuarios').doc(uid).set(usuario.paraMapa());
       }
-    } on FirebaseAuthException catch (e) {
-      // TRATAMENTO DE ERROS ESPECÍFICOS DO GOOGLE AUTH
-      // O 'on FirebaseAuthException' pega os erros de segurança que o Google joga.
+
+      print("✅ Cadastro completo!");
+    }
+    // 🔴 ERROS ESPECÍFICOS DO FIREBASE AUTH
+    on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {
-        throw Exception(
-          'A senha fornecida é muito fraca (mínimo 6 caracteres).',
-        );
+        throw Exception('Senha muito fraca (mínimo 6 caracteres).');
       } else if (e.code == 'email-already-in-use') {
-        throw Exception('Este e-mail já está cadastrado no sistema.');
+        throw Exception('Este e-mail já está cadastrado.');
+      } else if (e.code == 'invalid-email') {
+        throw Exception('E-mail inválido.');
       } else {
         throw Exception('Erro de autenticação: ${e.message}');
       }
-    } catch (e) {
-      // Erros gerais (ex: falta de internet)
-      throw Exception('Erro geral ao cadastrar: $e');
+    }
+    // 🔴 ERROS GERAIS
+    catch (e) {
+      throw Exception('Erro geral: $e');
     }
   }
 }

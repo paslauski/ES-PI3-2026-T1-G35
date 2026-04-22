@@ -44,7 +44,7 @@ class MeuAppMescla extends StatelessWidget {
         primarySwatch: Colors.blue, // Cor principal
         useMaterial3: true, // ativa o design system mais recente do Google
       ),
-      home: CadastroPage(),
+      home: const CadastroPage(),
     );
   }
 }

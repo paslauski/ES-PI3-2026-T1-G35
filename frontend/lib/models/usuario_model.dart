@@ -1,45 +1,39 @@
 // Isabela
-/*flutter pub add firebase_auth */
-// ISSO É UMA CLASSE: é o "molde" que define o que todo usuário tem que ter
-// no Flutter/Dart, uma classe é um molde que dita quais informações um objeto deve ter o firebase não sabe o que é um "Usuário", então nós ensinamos isso para ele aqui
-// Isabela
-// ISSO É UMA CLASSE: é o "molde" que define o que todo usuário tem que ter
-// no Flutter/Dart, uma classe é um molde que dita quais informações um objeto deve ter.
+
+// 📌 CLASSE = "molde" de um objeto
+// Aqui estamos dizendo: todo usuário do sistema TEM esses dados
 class Usuario {
-  // ATRIBUTOS - caracteristicas
+  // 🔹 ATRIBUTOS = características do objeto
   String nome;
   String email;
+  String senha; // ⚠️ usada só para criar no Auth (NÃO vai pro Firestore)
+  String cpf;
+  String telefone;
+  String tipo; // investidor ou empreendedor
 
-  // 🚨 ATENÇÃO AQUI: A senha ainda existe no molde para pegarmos da tela,
-  // mas ELA NÃO VAI PARA O BANCO DE DADOS (Firestore).
-  String senha;
-  String tipo; // Pode ser 'investidor' ou 'empreendedor'-seleção?
-
-  // CONSTRUTOR - cria o objeto real na memoria
+  // 🔹 CONSTRUTOR = função que cria o objeto na memória
+  // "required" = obrigatório passar esse valor ao criar o usuário
   Usuario({
-    required this.nome, //required é obrigatorio
+    required this.nome,
     required this.email,
     required this.senha,
+    required this.cpf,
+    required this.telefone,
     required this.tipo,
   });
 
-  // MÉTODO - (DE CONVERSÃO p/ Firebase Firestore)
-  // pega os atributos e transforma em um pacote "chave: valor"
-  // é uma função que transforma os dados acima em um "Mapa"
+  // 🔹 MÉTODO = função dentro da classe
+  // Converte o objeto em um MAPA (formato que o Firebase entende)
   Map<String, dynamic> paraMapa() {
     return {
-      // nome da var no bd - nome pego pelo required
       'nome': nome,
       'email': email,
+      'cpf': cpf,
+      'telefone': telefone,
       'tipo': tipo,
 
-      // 🚨 MUDANÇA EXTREMAMENTE IMPORTANTE PARA O PROFESSOR:
-      // Removemos a linha "'senha': senha," daqui!
-      // O banco de dados (Firestore) só guarda o PERFIL do usuário.
-      // Quem guarda a senha agora é o cofre do Google (Firebase Auth).
-
-      // Pega a hora exata de agora e convertemos para texto (.toString)-registro botão
-      'dataCadastro': DateTime.now().toString(),
+      // salva a data do cadastro
+      'dataCadastro': DateTime.now().toIso8601String(),
     };
   }
 }
