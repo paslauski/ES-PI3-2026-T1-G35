@@ -34,4 +34,4 @@ firebase init emulators
 
 firebase emulators:start
 
-INSTALAR A PORRA DO JAVA
+INSTALAR A PORRA DO JAVA?

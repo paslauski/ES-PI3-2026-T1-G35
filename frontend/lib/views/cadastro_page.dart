@@ -1,7 +1,7 @@
-//isabela
+// Isabela
 import 'package:flutter/material.dart';
-import '../models/usuario_model.dart';
-import '../services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Para criar o usuário
+import 'cadastro_startup_page.dart'; // Para pular para a próxima tela
 
 class CadastroPage extends StatefulWidget {
   @override
@@ -9,41 +9,37 @@ class CadastroPage extends StatefulWidget {
 }
 
 class _CadastroPageState extends State<CadastroPage> {
-  final TextEditingController _nomeController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _senhaController = TextEditingController();
+  // Controladores para pegar o texto
+  final _emailController = TextEditingController();
+  final _senhaController = TextEditingController();
+  final _nomeController = TextEditingController();
 
-  String _tipoUtilizador = 'investidor';
-
-  final AuthService _authService = AuthService();
-
+  // Função para cadastrar o usuário na nuvem
   void _fazerCadastro() async {
-    Usuario novo = Usuario(
-      nome: _nomeController.text,
-      email: _emailController.text,
-      senha: _senhaController.text,
-      tipo: _tipoUtilizador,
-    );
-
     try {
-      await _authService.cadastrarNovoUsuario(novo);
+      // 1. Cria o usuário no Firebase Auth real (Nuvem)
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _senhaController.text.trim(),
+      );
 
+      // 2. Se deu certo, avisa o usuário
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Sucesso! ${novo.nome} salvo no Firebase!"),
+          content: Text("Usuário criado com sucesso!"),
           backgroundColor: Colors.green,
         ),
       );
 
-      _nomeController.clear();
-      _emailController.clear();
-      _senhaController.clear();
+      // 3. PULA AUTOMATICAMENTE para a tela de cadastrar Startup que você fez
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => CadastroStartupPage()),
+      );
     } catch (e) {
+      // Se der erro (ex: e-mail já existe), avisa aqui
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Erro ao salvar: $e"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Erro: $e"), backgroundColor: Colors.red),
       );
     }
   }
@@ -51,90 +47,31 @@ class _CadastroPageState extends State<CadastroPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Cadastro MesclaInvest"),
-        backgroundColor: Colors.blueAccent,
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(20.0),
+      appBar: AppBar(title: Text("Criar Conta - MesclaInvest")),
+      body: Padding(
+        padding: EdgeInsets.all(20),
         child: Column(
           children: [
-            Icon(Icons.person_add, size: 80, color: Colors.blueAccent),
-            SizedBox(height: 20),
             TextField(
               controller: _nomeController,
-              decoration: InputDecoration(
-                labelText: "Nome Completo",
-                prefixIcon: Icon(Icons.person),
-                border: OutlineInputBorder(),
-              ),
+              decoration: InputDecoration(labelText: "Nome Completo"),
             ),
-            SizedBox(height: 15),
             TextField(
               controller: _emailController,
-              decoration: InputDecoration(
-                labelText: "E-mail",
-                prefixIcon: Icon(Icons.email),
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(labelText: "E-mail"),
             ),
-            SizedBox(height: 15),
             TextField(
               controller: _senhaController,
-              decoration: InputDecoration(
-                labelText: "Senha",
-                prefixIcon: Icon(Icons.lock),
-                border: OutlineInputBorder(),
-              ),
+              decoration: InputDecoration(labelText: "Senha"),
               obscureText: true,
-            ),
-            SizedBox(height: 20),
-            Text(
-              "Selecione seu perfil:",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Radio(
-                  value: 'investidor',
-                  groupValue: _tipoUtilizador,
-                  onChanged: (value) =>
-                      setState(() => _tipoUtilizador = value!),
-                ),
-                Text("Investidor"),
-                SizedBox(width: 20),
-                Radio(
-                  value: 'empreendedor',
-                  groupValue: _tipoUtilizador,
-                  onChanged: (value) =>
-                      setState(() => _tipoUtilizador = value!),
-                ),
-                Text("Empreendedor"),
-              ],
             ),
             SizedBox(height: 30),
             SizedBox(
               width: double.infinity,
-              height: 55,
+              height: 50,
               child: ElevatedButton(
                 onPressed: _fazerCadastro,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  "FINALIZAR CADASTRO",
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: Text("CADASTRAR E CONTINUAR"),
               ),
             ),
           ],
