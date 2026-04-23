@@ -136,7 +136,7 @@ class _StartupListPageState extends State<StartupListPage> {
                           backgroundColor: Colors.blue,
                           radius: 24,
                           child: Text(
-                            s.nome[0],
+                            s.nome.isNotEmpty ? s.nome[0] : '?',
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
