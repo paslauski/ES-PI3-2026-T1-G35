@@ -11,6 +11,7 @@ import '../services/auth_service.dart';
 // 🔹 telas que vamos navegar
 import 'cadastro_page.dart';
 import 'esqueci_senha_page.dart';
+import 'startups/startup_list_page.dart';
 
 // 🔹 StatefulWidget = tela que pode mudar (estado dinâmico)
 // Ex: loading, erro, texto digitado
@@ -70,14 +71,19 @@ class _LoginPageState extends State<LoginPage> {
           backgroundColor: Colors.green,
         ),
       );
-      // 🔹 REDIRECIONAMENTO
-      // espera 2 segundos (pra dar tempo de ler a mensagem)
-      Future.delayed(const Duration(seconds: 2), () {
-        Navigator.pop(context); // volta para login
-      });
 
-      // 📌 FUTURO:
-      // aqui vamos navegar para o catálogo de startups
+      // 🔹 REDIRECIONAMENTO para o catálogo de startups
+      // Mateus - navegação para StartupListPage após login
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
+
+        
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const StartupListPage()),
+  );
+
+});
     } catch (e) {
       if (!mounted) return;
 
