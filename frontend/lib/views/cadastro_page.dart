@@ -71,6 +71,9 @@ class _CadastroPageState extends State<CadastroPage> {
           backgroundColor: Colors.green,
         ),
       );
+      // 🔹 REDIRECIONAMENTO
+      // Navigator.pop() = volta para a tela anterior (login)
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
 

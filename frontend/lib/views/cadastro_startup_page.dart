@@ -1,121 +1,211 @@
 // Isabela
-// TELA PARA O EMPREENDEDOR CADASTRAR A SUA STARTUP
+
+// 📌 VIEW = tela visual do app
 
 import 'package:flutter/material.dart';
-import 'package:cloud_functions/cloud_functions.dart'; // Importa a biblioteca dos Robôs
+import '../models/usuario_model.dart';
+import '../services/auth_service.dart';
 
-class CadastroStartupPage extends StatefulWidget {
+// 🔹 StatefulWidget = tela que muda de estado
+// Ex: loading, erro, texto digitado
+class CadastroPage extends StatefulWidget {
+  const CadastroPage({super.key});
+
   @override
-  _CadastroStartupPageState createState() => _CadastroStartupPageState();
+  State<CadastroPage> createState() => _CadastroPageState();
 }
 
-class _CadastroStartupPageState extends State<CadastroStartupPage> {
-  // Controladores para apanhar o que o utilizador digita
-  final TextEditingController _nomeController = TextEditingController();
-  final TextEditingController _descricaoController = TextEditingController();
+// 🔹 State = parte que guarda a lógica e os dados da tela
+class _CadastroPageState extends State<CadastroPage> {
+  // controla e valida o formulário
+  final _formKey = GlobalKey<FormState>();
 
-  // Variável para mostrar a "bolinha a girar" enquanto o servidor pensa
+  // controllers = pegam o texto digitado nos campos
+  final _nomeController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _cpfController = TextEditingController();
+  final _telefoneController = TextEditingController();
+  final _senhaController = TextEditingController();
+
+  // service = conversa com Firebase
+  final AuthService _authService = AuthService();
+
   bool _carregando = false;
+  String _tipoSelecionado = 'investidor';
 
-  // Função assíncrona que fala com o nosso Backend (Cloud Functions)
-  Future<void> _salvarStartup() async {
-    setState(() {
-      _carregando = true; // Liga a bolinha a girar
-    });
+  @override
+  void dispose() {
+    // libera memória quando sair da tela
+    _nomeController.dispose();
+    _emailController.dispose();
+    _cpfController.dispose();
+    _telefoneController.dispose();
+    _senhaController.dispose();
+    super.dispose();
+  }
+
+  // 🔹 MÉTODO PRINCIPAL DO CADASTRO
+  Future<void> _fazerCadastro() async {
+    // valida os campos antes de continuar
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _carregando = true);
 
     try {
-      print("A chamar o robô createStartup no servidor (América do Sul)...");
+      // cria um objeto Usuario com os dados da tela
+      final usuario = Usuario(
+        nome: _nomeController.text.trim(),
+        email: _emailController.text.trim(),
+        senha: _senhaController.text.trim(),
+        cpf: _cpfController.text.trim(),
+        telefone: _telefoneController.text.trim(),
+        tipo: _tipoSelecionado,
+      );
 
-      // 1. PREPARA A CHAMADA: Procura o robô pelo nome exato e na região certa!
-      final roboCreateStartup = FirebaseFunctions.instanceFor(
-        region: 'southamerica-east1',
-      ).httpsCallable('createStartup');
+      // chama o service que cadastra no Firebase
+      await _authService.cadastrarNovoUsuario(usuario);
 
-      // 2. ENVIA OS DADOS: Manda o pacote para o robô e ESPERA (await) a resposta
-      final resposta = await roboCreateStartup.call({
-        'nome': _nomeController.text,
-        'descricao': _descricaoController.text,
-      });
+      if (!mounted) return;
 
-      // 3. SUCESSO! Mostra a mensagem verde com a resposta que o robô mandou
+      // mostra mensagem de sucesso
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("✅ ${resposta.data['mensagem']}"),
+        const SnackBar(
+          content: Text('Usuário cadastrado com sucesso!'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
 
-      // Limpa os campos
-      _nomeController.clear();
-      _descricaoController.clear();
-    } on FirebaseFunctionsException catch (e) {
-      // BARREIRA DE SEGURANÇA!
-      // Se o utilizador não estiver logado, ou se o texto estiver vazio, cai aqui.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("❌ Erro do Servidor: ${e.message}"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      // 🔹 redireciona para a tela anterior (login)
+      // como o cadastro foi aberto a partir do login com Navigator.push,
+      // o pop() volta para o login
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
+        Navigator.pop(context);
+      });
     } catch (e) {
-      // Erro geral do telemóvel/navegador
+      if (!mounted) return;
+
+      // mostra erro caso algo dê errado
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Erro: $e"), backgroundColor: Colors.red),
+        SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
       );
     } finally {
-      setState(() {
-        _carregando = false; // Desliga a bolinha a girar
-      });
+      if (!mounted) return;
+      setState(() => _carregando = false);
     }
+  }
+
+  // 🔹 valida campo obrigatório
+  String? _validarObrigatorio(String? value, String campo) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Informe $campo';
+    }
+    return null;
+  }
+
+  // 🔹 valida senha
+  String? _validarSenha(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Informe a senha';
+    }
+    if (value.length < 6) {
+      return 'Senha deve ter pelo menos 6 caracteres';
+    }
+    return null;
+  }
+
+  // 🔹 padrão visual dos campos
+  InputDecoration _decoracao(String label) {
+    return InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Cadastrar Nova Startup"),
-        backgroundColor: Colors.blueAccent,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _nomeController,
-              decoration: InputDecoration(
-                labelText: "Nome da Startup",
-                border: OutlineInputBorder(),
+      appBar: AppBar(title: const Text('Criar Conta - MesclaInvest')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _nomeController,
+                decoration: _decoracao('Nome'),
+                validator: (v) => _validarObrigatorio(v, 'o nome'),
               ),
-            ),
-            SizedBox(height: 20),
-            TextField(
-              controller: _descricaoController,
-              maxLines: 4, // Caixa de texto maior para a descrição
-              decoration: InputDecoration(
-                labelText: "Descreva a sua ideia (Elevator Pitch)",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 30),
+              const SizedBox(height: 16),
 
-            // Se estiver a carregar, mostra a bolinha. Se não, mostra o botão.
-            _carregando
-                ? CircularProgressIndicator()
-                : SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: _salvarStartup,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                      ),
-                      child: Text(
-                        "ENVIAR PARA ANÁLISE",
-                        style: TextStyle(fontSize: 18, color: Colors.white),
+              TextFormField(
+                controller: _emailController,
+                decoration: _decoracao('E-mail'),
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) => _validarObrigatorio(v, 'o e-mail'),
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _cpfController,
+                decoration: _decoracao('CPF'),
+                keyboardType: TextInputType.number,
+                validator: (v) => _validarObrigatorio(v, 'o CPF'),
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _telefoneController,
+                decoration: _decoracao('Telefone'),
+                keyboardType: TextInputType.phone,
+                validator: (v) => _validarObrigatorio(v, 'o telefone'),
+              ),
+              const SizedBox(height: 16),
+
+              // dropdown = campo de seleção
+              DropdownButtonFormField<String>(
+                value: _tipoSelecionado,
+                decoration: _decoracao('Tipo'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'investidor',
+                    child: Text('Investidor'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'empreendedor',
+                    child: Text('Empreendedor'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _tipoSelecionado = value);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _senhaController,
+                decoration: _decoracao('Senha'),
+                obscureText: true,
+                validator: _validarSenha,
+              ),
+              const SizedBox(height: 30),
+
+              _carregando
+                  ? const CircularProgressIndicator()
+                  : SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _fazerCadastro,
+                        child: const Text('CADASTRAR'),
                       ),
                     ),
-                  ),
-          ],
+            ],
+          ),
         ),
       ),
     );

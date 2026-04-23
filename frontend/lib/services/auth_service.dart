@@ -1,55 +1,73 @@
 // Isabela
 
-// 📌 SERVICE = camada de lógica que conversa com o Firebase
-// (separa a lógica do backend da tela)
+// 📌 SERVICE = classe responsável por falar com o Firebase
+// Versão SIMPLIFICADA (fluxo direto, mais fácil de entender)
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/usuario_model.dart';
 
 class AuthService {
-  // 🔹 INSTÂNCIAS (conexões com Firebase)
-  final FirebaseAuth _auth = FirebaseAuth.instance; // Auth (login/senha)
-  final FirebaseFirestore _db = FirebaseFirestore.instance; // Banco
+  // 🔹 Conexões com Firebase
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // 🔹 MÉTODO PRINCIPAL: cadastrar usuário completo
+  // 🔹 CADASTRO
   Future<void> cadastrarNovoUsuario(Usuario usuario) async {
     try {
-      print("🔐 Criando conta no Firebase Auth...");
+      print("Criando usuário no Firebase Auth...");
 
-      // 📌 PASSO 1: cria conta no "cofre do Google"
+      // 1. cria usuário (email + senha)
       UserCredential credencial = await _auth.createUserWithEmailAndPassword(
-        email: usuario.email.trim(),
-        password: usuario.senha.trim(),
+        email: usuario.email,
+        password: usuario.senha,
       );
 
-      print("📦 Salvando perfil no Firestore...");
+      print("Salvando dados no Firestore...");
 
-      // 📌 PASSO 2: salva dados do perfil no banco
-      if (credencial.user != null) {
-        String uid = credencial.user!.uid;
+      // 2. pega o ID único do usuário
+      String uid = credencial.user!.uid;
 
-        // usamos o UID como ID do documento (boa prática)
-        await _db.collection('usuarios').doc(uid).set(usuario.paraMapa());
-      }
+      // 3. salva perfil no banco
+      await _db.collection('usuarios').doc(uid).set(usuario.paraMapa());
 
-      print("✅ Cadastro completo!");
+      print("Cadastro finalizado!");
+    } catch (e) {
+      // 🔴 versão simples: mostra erro direto
+      throw Exception("Erro no cadastro: $e");
     }
-    // 🔴 ERROS ESPECÍFICOS DO FIREBASE AUTH
-    on FirebaseAuthException catch (e) {
-      if (e.code == 'weak-password') {
-        throw Exception('Senha muito fraca (mínimo 6 caracteres).');
-      } else if (e.code == 'email-already-in-use') {
-        throw Exception('Este e-mail já está cadastrado.');
-      } else if (e.code == 'invalid-email') {
-        throw Exception('E-mail inválido.');
-      } else {
-        throw Exception('Erro de autenticação: ${e.message}');
-      }
+  }
+
+  // 🔹 LOGIN
+  Future<void> login(String email, String senha) async {
+    try {
+      print("Fazendo login...");
+
+      await _auth.signInWithEmailAndPassword(email: email, password: senha);
+
+      print("Login realizado!");
+    } catch (e) {
+      throw Exception("Erro no login: $e");
     }
-    // 🔴 ERROS GERAIS
-    catch (e) {
-      throw Exception('Erro geral: $e');
+  }
+
+  // 🔹 LOGOUT
+  Future<void> logout() async {
+    await _auth.signOut();
+  }
+
+  // 🔹 pega usuário atual (se estiver logado)
+  User? get usuarioAtual => _auth.currentUser;
+  // 🔹 RECUPERAR SENHA
+  Future<void> recuperarSenha(String email) async {
+    try {
+      print("Enviando email de recuperação...");
+
+      await _auth.sendPasswordResetEmail(email: email);
+
+      print("Email enviado!");
+    } catch (e) {
+      throw Exception("Erro ao enviar email: $e");
     }
   }
 }
