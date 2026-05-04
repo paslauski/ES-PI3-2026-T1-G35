@@ -44,11 +44,11 @@ class MeuAppMescla extends StatelessWidget {
     return MaterialApp(
       title: 'MesclaInvest',
       debugShowCheckedModeBanner: false,
-
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-
-      // agora o app começa pela tela de login
-      home: const LoginPage(),
-    );
-  }
+      initialRoute: '/',           // define qual é a tela inicial pelo nome
+      routes: {
+        '/': (context) => const LoginPage(), // rota usada pelo logout para voltar ao login
+  },
+);
+}
 }

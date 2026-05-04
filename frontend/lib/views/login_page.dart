@@ -45,6 +45,27 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  //Mateus
+  //Criando função PRIVATE
+  //Para traduzir os erros!
+
+  String _traduzirErro(String erro) {
+  if (erro.contains('user-not-found') || erro.contains('invalid-credential')) {
+    return 'E-mail ou senha incorretos. Verifique seus dados.';
+  } else if (erro.contains('wrong-password')) {
+    return 'Senha incorreta. Tente novamente.';
+  } else if (erro.contains('invalid-email')) {
+    return 'O e-mail informado não é válido.';
+  } else if (erro.contains('user-disabled')) {
+    return 'Esta conta foi desativada. Entre em contato com o suporte.';
+  } else if (erro.contains('too-many-requests')) {
+    return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+  } else if (erro.contains('network-request-failed')) {
+    return 'Sem conexão com a internet. Verifique sua rede.';
+  }
+  return 'Ocorreu um erro inesperado. Tente novamente.';
+}
+
   // 🔹 FUNÇÃO PRINCIPAL DO LOGIN
   // Essa função roda quando o usuário clica no botão "ENTRAR"
   Future<void> _fazerLogin() async {
@@ -84,13 +105,26 @@ class _LoginPageState extends State<LoginPage> {
   );
 
 });
+
+  //Mateus Substitui o antigo catch
+  //Agora chama a função e traduz os erros
     } catch (e) {
       if (!mounted) return;
-
-      // 5. mensagem de erro
+      final mensagem = _traduzirErro(e.toString());
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Row(
+          children: [
+          const Icon(Icons.error_outline, color: Colors.white),
+          const SizedBox(width: 8),
+          Expanded(child: Text(mensagem)),
+        ],
+      ),
+      backgroundColor: Colors.red,
+      duration: const Duration(seconds: 4), 
+    ),
       );
+
     } finally {
       if (!mounted) return;
 

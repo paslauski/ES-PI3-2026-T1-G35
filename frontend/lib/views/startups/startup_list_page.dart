@@ -1,9 +1,9 @@
 // Mateus - Tela de catálogo de startups
-// Busca startups do Firestore e exibe em lista com filtro e busca
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/startup_model.dart';
+import 'startup_detail_page.dart';
 
 class StartupListPage extends StatefulWidget {
   const StartupListPage({super.key});
@@ -13,14 +13,146 @@ class StartupListPage extends StatefulWidget {
 }
 
 class _StartupListPageState extends State<StartupListPage> {
-  // Controla qual estágio está selecionado no filtro
   String _filtroEstagio = 'Todos';
-
-  // Controla o texto digitado na busca
   String _busca = '';
+  final List<String> _estagios = ['Todos', 'nova', 'em operação', 'em expansão'];
 
-  // Opções de filtro por estágio
-  final List<String> _estagios = ['Todos', 'Pre-seed', 'Seed', 'Series A'];
+  // ── ABRE PAINEL DO USUÁRIO ───────────────────────────────────
+  // Busca os dados do usuário no Firestore e exibe num painel deslizante
+  Future<void> _abrirPainelUsuario() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Busca dados extras do Firestore (nome, data de cadastro)
+    final doc = await FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(user.uid)
+        .get();
+
+    final dados = doc.data();
+    final nome = dados?['nome'] ?? 'Não informado';
+    final dataCadastro = dados?['dataCriacao'] ?? '';
+
+    if (!mounted) return;
+
+    // Exibe painel deslizante de baixo para cima
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // painel só do tamanho do conteúdo
+            children: [
+              // Linha de arraste visual
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Ícone grande do usuário
+              const CircleAvatar(
+                radius: 36,
+                backgroundColor: Colors.blue,
+                child: Icon(Icons.person, size: 40, color: Colors.white),
+              ),
+              const SizedBox(height: 16),
+
+              // Nome
+              Text(
+                nome,
+                style: const TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+
+              // E-mail
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.email_outlined,
+                      size: 16, color: Colors.grey),
+                  const SizedBox(width: 6),
+                  Text(
+                    user.email ?? 'Não informado',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+
+              // Data de cadastro
+              if (dataCadastro.isNotEmpty)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.calendar_today_outlined,
+                        size: 16, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Cadastrado em: $dataCadastro',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ),
+
+              const SizedBox(height: 28),
+              const Divider(),
+              const SizedBox(height: 12),
+
+              // Botão SAIR DA CONTA
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(ctx); // fecha o painel
+                    await _fazerLogout();
+                  },
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Sair da conta'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ── LOGOUT ──────────────────────────────────────────────────
+  Future<void> _fazerLogout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      if (!mounted) return;
+      // Volta para o login e apaga todas as telas da memória
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao sair: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,11 +161,21 @@ class _StartupListPageState extends State<StartupListPage> {
         title: const Text('Catálogo de Startups'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-        automaticallyImplyLeading: false, // remove botão de voltar
+        automaticallyImplyLeading: false,
+        actions: [
+          // NOVO: ícone de usuário no canto direito
+          // Antes tinha só o ícone de logout direto
+          IconButton(
+            icon: const Icon(Icons.account_circle, size: 30),
+            tooltip: 'Meu perfil',
+            onPressed: _abrirPainelUsuario, // abre o painel com dados + logout
+          ),
+        ],
       ),
+
       body: Column(
         children: [
-          // ── CAMPO DE BUSCA POR TEXTO ──────────────────────────
+          // Campo de busca
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
             child: TextField(
@@ -48,7 +190,7 @@ class _StartupListPageState extends State<StartupListPage> {
             ),
           ),
 
-          // ── FILTRO POR ESTÁGIO ────────────────────────────────
+          // Filtro por estágio
           SizedBox(
             height: 46,
             child: ListView(
@@ -78,26 +220,32 @@ class _StartupListPageState extends State<StartupListPage> {
 
           const SizedBox(height: 6),
 
-          // ── LISTA VINDA DO FIRESTORE ──────────────────────────
+          // Lista do Firestore
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('startups')
                   .snapshots(),
               builder: (context, snapshot) {
-                // Carregando...
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                // Coleção vazia
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text('Nenhuma startup cadastrada ainda.'),
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Erro ao carregar startups.\nTente novamente.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.red.shade400),
+                    ),
                   );
                 }
 
-                // Converte documentos e aplica filtros
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                      child: Text('Nenhuma startup cadastrada ainda.'));
+                }
+
                 final startups = snapshot.data!.docs
                     .map((doc) => Startup.fromFirestore(
                         doc.data() as Map<String, dynamic>, doc.id))
@@ -111,14 +259,12 @@ class _StartupListPageState extends State<StartupListPage> {
                   return passaEstagio && passaBusca;
                 }).toList();
 
-                // Sem resultados com filtro aplicado
                 if (startups.isEmpty) {
                   return const Center(
-                    child: Text('Nenhuma startup encontrada com esse filtro.'),
-                  );
+                      child:
+                          Text('Nenhuma startup encontrada com esse filtro.'));
                 }
 
-                // Lista de cards
                 return ListView.builder(
                   itemCount: startups.length,
                   itemBuilder: (context, index) {
@@ -130,66 +276,82 @@ class _StartupListPageState extends State<StartupListPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 3,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(12),
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.blue,
-                          radius: 24,
-                          child: Text(
-                            s.nome.isNotEmpty ? s.nome[0] : '?',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          // Clique no card abre a tela detalhada
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => StartupDetailPage(startup: s),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: Colors.blue,
+                                radius: 24,
+                                child: Text(
+                                  s.nome.isNotEmpty ? s.nome[0] : '?',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(s.nome,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15)),
+                                    const SizedBox(height: 4),
+                                    Text(s.descricao,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 13)),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.shade100,
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          child: Text(s.estagio,
+                                              style: const TextStyle(
+                                                  fontSize: 11)),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text('📍 ${s.setor}',
+                                            style:
+                                                const TextStyle(fontSize: 12)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text('💰 ${s.capital}',
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right,
+                                  color: Colors.grey),
+                            ],
                           ),
                         ),
-                        title: Text(
-                          s.nome,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Text(
-                              s.descricao,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                // Chip com estágio
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade100,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    s.estagio,
-                                    style: const TextStyle(fontSize: 11),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '📍 ${s.setor}',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '💰 ${s.capital}',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                        isThreeLine: true,
                       ),
                     );
                   },
