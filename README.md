@@ -15,7 +15,6 @@ Cadastro e autenticação de usuários, Visualização de startups cadastradas, 
 
 O projeto possui caráter exclusivamente acadêmico e não envolve dinheiro real, blockchain real ou emissão de tokens reais. 
 
-Na branch main, foi criada uma pasta data para armazenar arquivos de tabelas de startups nos formatos .xlsx e .csv, facilitando a organização e carregamento de dados simulados.
  
  
 
@@ -32,6 +31,3 @@ MATEUS OLIVEIRA RAFAEL - 25001369
 
 • Tecnologias utilizadas
 • Instruções claras para execução do sistema em ambiente de testes
-
-• Recursos Adicionais
-O mapa mental do projeto está disponível em https://mm.tt/map/3969683883?t=6S6CwF98Wm
