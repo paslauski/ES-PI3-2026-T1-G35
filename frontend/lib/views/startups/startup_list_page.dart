@@ -31,8 +31,11 @@ class _StartupListPageState extends State<StartupListPage> {
 
     final dados = doc.data();
     final nome = dados?['nome'] ?? 'Não informado';
-    final dataCadastro = dados?['dataCriacao'] ?? '';
+    final dataCadastro = dados?['dataCadastro'] ?? '';
 
+    // lê o saldo como number e formata
+    final saldo = (dados?['saldo'] ?? 0).toDouble();
+    final saldoFormatado = 'R\$ ${saldo.toStringAsFixed(2).replaceAll('.', ',')}';
     if (!mounted) return;
 
     // Exibe painel deslizante de baixo para cima
@@ -45,7 +48,7 @@ class _StartupListPageState extends State<StartupListPage> {
         return Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
-            mainAxisSize: MainAxisSize.min, // painel só do tamanho do conteúdo
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Linha de arraste visual
               Container(
@@ -70,7 +73,9 @@ class _StartupListPageState extends State<StartupListPage> {
               Text(
                 nome,
                 style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 6),
 
@@ -78,8 +83,7 @@ class _StartupListPageState extends State<StartupListPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.email_outlined,
-                      size: 16, color: Colors.grey),
+                  const Icon(Icons.email_outlined, size: 16, color: Colors.grey),
                   const SizedBox(width: 6),
                   Text(
                     user.email ?? 'Não informado',
@@ -94,8 +98,7 @@ class _StartupListPageState extends State<StartupListPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.calendar_today_outlined,
-                        size: 16, color: Colors.grey),
+                    const Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey),
                     const SizedBox(width: 6),
                     Text(
                       'Cadastrado em: $dataCadastro',
@@ -106,14 +109,57 @@ class _StartupListPageState extends State<StartupListPage> {
 
               const SizedBox(height: 28),
               const Divider(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              // ── CARTEIRA SIMULADA ──────────────────────
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      '💰 Carteira MesclaInvest',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Colors.green,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      saldoFormatado,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                    const Text(
+                      'saldo disponível',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+              const Divider(),
+              const SizedBox(height: 8),
 
               // Botão SAIR DA CONTA
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () async {
-                    Navigator.pop(ctx); // fecha o painel
+                    Navigator.pop(ctx);
                     await _fazerLogout();
                   },
                   icon: const Icon(Icons.logout),
@@ -128,6 +174,7 @@ class _StartupListPageState extends State<StartupListPage> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 8),
             ],
           ),
@@ -163,12 +210,10 @@ class _StartupListPageState extends State<StartupListPage> {
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
         actions: [
-          // NOVO: ícone de usuário no canto direito
-          // Antes tinha só o ícone de logout direto
           IconButton(
             icon: const Icon(Icons.account_circle, size: 30),
             tooltip: 'Meu perfil',
-            onPressed: _abrirPainelUsuario, // abre o painel com dados + logout
+            onPressed: _abrirPainelUsuario,
           ),
         ],
       ),
@@ -206,12 +251,9 @@ class _StartupListPageState extends State<StartupListPage> {
                     selectedColor: Colors.blue,
                     labelStyle: TextStyle(
                       color: selecionado ? Colors.white : Colors.black87,
-                      fontWeight: selecionado
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                      fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
                     ),
-                    onSelected: (_) =>
-                        setState(() => _filtroEstagio = estagio),
+                    onSelected: (_) => setState(() => _filtroEstagio = estagio),
                   ),
                 );
               }).toList(),
@@ -243,26 +285,30 @@ class _StartupListPageState extends State<StartupListPage> {
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(
-                      child: Text('Nenhuma startup cadastrada ainda.'));
+                    child: Text('Nenhuma startup cadastrada ainda.'),
+                  );
                 }
 
                 final startups = snapshot.data!.docs
                     .map((doc) => Startup.fromFirestore(
-                        doc.data() as Map<String, dynamic>, doc.id))
+                          doc.data() as Map<String, dynamic>,
+                          doc.id,
+                        ))
                     .where((s) {
-                  final passaEstagio = _filtroEstagio == 'Todos' ||
-                      s.estagio == _filtroEstagio;
-                  final passaBusca = _busca.isEmpty ||
-                      s.nome.toLowerCase().contains(_busca) ||
-                      s.descricao.toLowerCase().contains(_busca) ||
-                      s.setor.toLowerCase().contains(_busca);
-                  return passaEstagio && passaBusca;
-                }).toList();
+                      final passaEstagio =
+                          _filtroEstagio == 'Todos' || s.estagio == _filtroEstagio;
+                      final passaBusca = _busca.isEmpty ||
+                          s.nome.toLowerCase().contains(_busca) ||
+                          s.descricao.toLowerCase().contains(_busca) ||
+                          s.setor.toLowerCase().contains(_busca);
+                      return passaEstagio && passaBusca;
+                    })
+                    .toList();
 
                 if (startups.isEmpty) {
                   return const Center(
-                      child:
-                          Text('Nenhuma startup encontrada com esse filtro.'));
+                    child: Text('Nenhuma startup encontrada com esse filtro.'),
+                  );
                 }
 
                 return ListView.builder(
@@ -270,8 +316,7 @@ class _StartupListPageState extends State<StartupListPage> {
                   itemBuilder: (context, index) {
                     final s = startups[index];
                     return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -279,7 +324,6 @@ class _StartupListPageState extends State<StartupListPage> {
                       child: InkWell(
                         borderRadius: BorderRadius.circular(12),
                         onTap: () {
-                          // Clique no card abre a tela detalhada
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -298,9 +342,10 @@ class _StartupListPageState extends State<StartupListPage> {
                                 child: Text(
                                   s.nome.isNotEmpty ? s.nome[0] : '?',
                                   style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18),
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -308,47 +353,57 @@ class _StartupListPageState extends State<StartupListPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(s.nome,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15)),
+                                    Text(
+                                      s.nome,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
-                                    Text(s.descricao,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 13)),
+                                    Text(
+                                      s.descricao,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
                                     const SizedBox(height: 6),
                                     Row(
                                       children: [
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 2),
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: Colors.blue.shade100,
-                                            borderRadius:
-                                                BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(20),
                                           ),
-                                          child: Text(s.estagio,
-                                              style: const TextStyle(
-                                                  fontSize: 11)),
+                                          child: Text(
+                                            s.estagio,
+                                            style: const TextStyle(fontSize: 11),
+                                          ),
                                         ),
                                         const SizedBox(width: 6),
-                                        Text('📍 ${s.setor}',
-                                            style:
-                                                const TextStyle(fontSize: 12)),
+                                        Text(
+                                          '📍 ${s.setor}',
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
                                       ],
                                     ),
                                     const SizedBox(height: 4),
-                                    Text('💰 ${s.capital}',
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.w600)),
+                                    Text(
+                                      '💰 ${s.capital}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.chevron_right,
-                                  color: Colors.grey),
+                              const Icon(Icons.chevron_right, color: Colors.grey),
                             ],
                           ),
                         ),
