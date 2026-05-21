@@ -15,9 +15,12 @@ class Startup {
   // campos necessários para a tela detalhada
   final String sumarioExecutivo;
   final String totalTokens;
-  final double precoToken; // era String — agora double para suportar cálculos
+  final double precoToken;
   final List<Socio> socios;
   final List<String> perguntasRespostas;
+
+  // 🎬 URL do vídeo de apresentação (Firebase Storage)
+  final String videoUrl;
 
   Startup({
     required this.id,
@@ -29,9 +32,10 @@ class Startup {
     required this.capital,
     this.sumarioExecutivo = '',
     this.totalTokens = '',
-    this.precoToken = 0.0, // padrão 0.0 em vez de ''
+    this.precoToken = 0.0,
     this.socios = const [],
     this.perguntasRespostas = const [],
+    this.videoUrl = '',
   });
 
   factory Startup.fromFirestore(Map<String, dynamic> data, String id) {
@@ -39,12 +43,10 @@ class Startup {
     List<Socio> socios = [];
     if (data['socios'] != null) {
       try {
-        // tenta ler como array (lista normal)
         socios = (data['socios'] as List)
             .map((s) => Socio.fromMap(Map<String, dynamic>.from(s)))
             .toList();
       } catch (_) {
-        // se falhar, tenta ler como map
         final map = Map<String, dynamic>.from(data['socios']);
         socios = map.values
             .map((s) => Socio.fromMap(Map<String, dynamic>.from(s)))
@@ -72,10 +74,11 @@ class Startup {
       capital: data['capital'] ?? '',
       sumarioExecutivo: data['sumario_executivo'] ?? '',
       totalTokens: data['total_tokens']?.toString() ?? '',
-      // preco_token vem como number do Firestore — converte seguro para double
       precoToken: (data['preco_token'] as num?)?.toDouble() ?? 0.0,
       socios: socios,
       perguntasRespostas: prs,
+      // 🎬 lê a URL do vídeo — campo 'videoUrl' no Firestore
+      videoUrl: data['videoUrl'] ?? '',
     );
   }
 }

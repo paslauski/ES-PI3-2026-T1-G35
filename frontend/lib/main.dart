@@ -26,16 +26,11 @@ import 'views/login_page.dart';
 
 // async = depende de operação externa, tipo internet/Firebase
 void main() async {
-  // garante que o Flutter carregou antes de falar com o Firebase
   WidgetsFlutterBinding.ensureInitialized();
-
-  // inicializa conexão com o projeto Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
   runApp(const MeuAppMescla());
 }
 
-// StatelessWidget = estrutura fixa/base do app
 class MeuAppMescla extends StatelessWidget {
   const MeuAppMescla({super.key});
 
@@ -44,11 +39,96 @@ class MeuAppMescla extends StatelessWidget {
     return MaterialApp(
       title: 'MesclaInvest',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      initialRoute: '/',           // define qual é a tela inicial pelo nome
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6C63FF),
+          primary: const Color(0xFF6C63FF),
+          secondary: const Color(0xFF00C897),
+          surface: const Color(0xFFF5F5FA),
+          background: const Color(0xFFF5F5FA),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF5F5FA),
+
+        // AppBar limpa e escura
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1A1A2E),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+          iconTheme: IconThemeData(color: Colors.white),
+        ),
+
+        // Botões elevados com cantos arredondados
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6C63FF),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+
+        // Campos de texto
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 2),
+          ),
+          hintStyle: const TextStyle(color: Color(0xFFAAAAAA)),
+        ),
+
+        // Cards
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFFEEEEEE)),
+          ),
+        ),
+
+        // Chips
+        chipTheme: ChipThemeData(
+          backgroundColor: Colors.white,
+          selectedColor: const Color(0xFF6C63FF),
+          labelStyle: const TextStyle(fontSize: 13),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFFDDDDDD)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        ),
+      ),
+      initialRoute: '/',
       routes: {
-        '/': (context) => const LoginPage(), // rota usada pelo logout para voltar ao login
-  },
-);
-}
+        '/': (context) => const LoginPage(),
+      },
+    );
+  }
 }
