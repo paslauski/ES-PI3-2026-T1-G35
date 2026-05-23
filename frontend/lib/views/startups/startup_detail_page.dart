@@ -27,16 +27,14 @@ class StartupDetailPage extends StatelessWidget {
       }
 
       final precoToken = _converterPrecoToken(startup.precoToken);
-
-      if (precoToken <= 0) {
-        throw Exception('Preço do token inválido.');
-      }
+      final precoTokenFinal = precoToken > 0 ? precoToken : 10.0;
 
       await TokenService().comprarTokens(
         usuarioId: user.uid,
         startupId: startup.id,
         quantidade: 1,
-        precoToken: precoToken,
+        precoToken: precoTokenFinal,
+        nomeStartup: startup.nome,
       );
 
       if (!context.mounted) return;
@@ -47,12 +45,15 @@ class StartupDetailPage extends StatelessWidget {
           backgroundColor: Colors.green,
         ),
       );
-    } catch (e) {
+    } catch (e, stack) {
+      print('ERRO AO COMPRAR TOKEN: $e');
+      print(stack);
+
       if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao comprar token: $e'),
+          content: Text('Erro ao comprar token: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -66,6 +67,21 @@ class StartupDetailPage extends StatelessWidget {
         title: Text(startup.nome),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+
+        // Botão fixo para voltar para a Home
+        actions: [
+          IconButton(
+            tooltip: 'Home',
+            icon: const Icon(Icons.home),
+            onPressed: () {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/home',
+                (route) => false,
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

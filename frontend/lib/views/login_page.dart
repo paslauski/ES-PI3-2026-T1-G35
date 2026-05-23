@@ -11,7 +11,6 @@ import '../services/auth_service.dart';
 // 🔹 telas que vamos navegar
 import 'cadastro_page.dart';
 import 'esqueci_senha_page.dart';
-import 'startups/startup_list_page.dart';
 
 // 🔹 StatefulWidget = tela que pode mudar (estado dinâmico)
 // Ex: loading, erro, texto digitado
@@ -50,21 +49,22 @@ class _LoginPageState extends State<LoginPage> {
   //Para traduzir os erros!
 
   String _traduzirErro(String erro) {
-  if (erro.contains('user-not-found') || erro.contains('invalid-credential')) {
-    return 'E-mail ou senha incorretos. Verifique seus dados.';
-  } else if (erro.contains('wrong-password')) {
-    return 'Senha incorreta. Tente novamente.';
-  } else if (erro.contains('invalid-email')) {
-    return 'O e-mail informado não é válido.';
-  } else if (erro.contains('user-disabled')) {
-    return 'Esta conta foi desativada. Entre em contato com o suporte.';
-  } else if (erro.contains('too-many-requests')) {
-    return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
-  } else if (erro.contains('network-request-failed')) {
-    return 'Sem conexão com a internet. Verifique sua rede.';
+    if (erro.contains('user-not-found') ||
+        erro.contains('invalid-credential')) {
+      return 'E-mail ou senha incorretos. Verifique seus dados.';
+    } else if (erro.contains('wrong-password')) {
+      return 'Senha incorreta. Tente novamente.';
+    } else if (erro.contains('invalid-email')) {
+      return 'O e-mail informado não é válido.';
+    } else if (erro.contains('user-disabled')) {
+      return 'Esta conta foi desativada. Entre em contato com o suporte.';
+    } else if (erro.contains('too-many-requests')) {
+      return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+    } else if (erro.contains('network-request-failed')) {
+      return 'Sem conexão com a internet. Verifique sua rede.';
+    }
+    return 'Ocorreu um erro inesperado. Tente novamente.';
   }
-  return 'Ocorreu um erro inesperado. Tente novamente.';
-}
 
   // 🔹 FUNÇÃO PRINCIPAL DO LOGIN
   // Essa função roda quando o usuário clica no botão "ENTRAR"
@@ -93,38 +93,32 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-      // 🔹 REDIRECIONAMENTO para o catálogo de startups
-      // Mateus - navegação para StartupListPage após login
+      // 🔹 REDIRECIONAMENTO para a Home após login
+      // Após login com sucesso, manda o usuário para a tela inicial do app
       Future.delayed(const Duration(seconds: 2), () {
         if (!mounted) return;
 
-        
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const StartupListPage()),
-  );
+        Navigator.pushReplacementNamed(context, '/home');
+      });
 
-});
-
-  //Mateus Substitui o antigo catch
-  //Agora chama a função e traduz os erros
+      //Mateus Substitui o antigo catch
+      //Agora chama a função e traduz os erros
     } catch (e) {
       if (!mounted) return;
       final mensagem = _traduzirErro(e.toString());
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
-          children: [
-          const Icon(Icons.error_outline, color: Colors.white),
-          const SizedBox(width: 8),
-          Expanded(child: Text(mensagem)),
-        ],
-      ),
-      backgroundColor: Colors.red,
-      duration: const Duration(seconds: 4), 
-    ),
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text(mensagem)),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
       );
-
     } finally {
       if (!mounted) return;
 

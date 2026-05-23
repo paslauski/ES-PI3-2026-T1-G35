@@ -15,7 +15,12 @@ class StartupListPage extends StatefulWidget {
 class _StartupListPageState extends State<StartupListPage> {
   String _filtroEstagio = 'Todos';
   String _busca = '';
-  final List<String> _estagios = ['Todos', 'nova', 'em operação', 'em expansão'];
+  final List<String> _estagios = [
+    'Todos',
+    'nova',
+    'em operação',
+    'em expansão',
+  ];
 
   // ── ABRE PAINEL DO USUÁRIO ───────────────────────────────────
   // Busca os dados do usuário no Firestore e exibe num painel deslizante
@@ -70,7 +75,9 @@ class _StartupListPageState extends State<StartupListPage> {
               Text(
                 nome,
                 style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 6),
 
@@ -78,8 +85,11 @@ class _StartupListPageState extends State<StartupListPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.email_outlined,
-                      size: 16, color: Colors.grey),
+                  const Icon(
+                    Icons.email_outlined,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     user.email ?? 'Não informado',
@@ -94,8 +104,11 @@ class _StartupListPageState extends State<StartupListPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.calendar_today_outlined,
-                        size: 16, color: Colors.grey),
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 16,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Cadastrado em: $dataCadastro',
@@ -161,14 +174,17 @@ class _StartupListPageState extends State<StartupListPage> {
         title: const Text('Catálogo de Startups'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
         actions: [
-          // NOVO: ícone de usuário no canto direito
-          // Antes tinha só o ícone de logout direto
           IconButton(
-            icon: const Icon(Icons.account_circle, size: 30),
-            tooltip: 'Meu perfil',
-            onPressed: _abrirPainelUsuario, // abre o painel com dados + logout
+            tooltip: 'Home',
+            icon: const Icon(Icons.home),
+            onPressed: () {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/home',
+                (route) => false,
+              );
+            },
           ),
         ],
       ),
@@ -210,8 +226,7 @@ class _StartupListPageState extends State<StartupListPage> {
                           ? FontWeight.bold
                           : FontWeight.normal,
                     ),
-                    onSelected: (_) =>
-                        setState(() => _filtroEstagio = estagio),
+                    onSelected: (_) => setState(() => _filtroEstagio = estagio),
                   ),
                 );
               }).toList(),
@@ -243,26 +258,34 @@ class _StartupListPageState extends State<StartupListPage> {
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(
-                      child: Text('Nenhuma startup cadastrada ainda.'));
+                    child: Text('Nenhuma startup cadastrada ainda.'),
+                  );
                 }
 
                 final startups = snapshot.data!.docs
-                    .map((doc) => Startup.fromFirestore(
-                        doc.data() as Map<String, dynamic>, doc.id))
+                    .map(
+                      (doc) => Startup.fromFirestore(
+                        doc.data() as Map<String, dynamic>,
+                        doc.id,
+                      ),
+                    )
                     .where((s) {
-                  final passaEstagio = _filtroEstagio == 'Todos' ||
-                      s.estagio == _filtroEstagio;
-                  final passaBusca = _busca.isEmpty ||
-                      s.nome.toLowerCase().contains(_busca) ||
-                      s.descricao.toLowerCase().contains(_busca) ||
-                      s.setor.toLowerCase().contains(_busca);
-                  return passaEstagio && passaBusca;
-                }).toList();
+                      final passaEstagio =
+                          _filtroEstagio == 'Todos' ||
+                          s.estagio == _filtroEstagio;
+                      final passaBusca =
+                          _busca.isEmpty ||
+                          s.nome.toLowerCase().contains(_busca) ||
+                          s.descricao.toLowerCase().contains(_busca) ||
+                          s.setor.toLowerCase().contains(_busca);
+                      return passaEstagio && passaBusca;
+                    })
+                    .toList();
 
                 if (startups.isEmpty) {
                   return const Center(
-                      child:
-                          Text('Nenhuma startup encontrada com esse filtro.'));
+                    child: Text('Nenhuma startup encontrada com esse filtro.'),
+                  );
                 }
 
                 return ListView.builder(
@@ -271,7 +294,9 @@ class _StartupListPageState extends State<StartupListPage> {
                     final s = startups[index];
                     return Card(
                       margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -298,9 +323,10 @@ class _StartupListPageState extends State<StartupListPage> {
                                 child: Text(
                                   s.nome.isNotEmpty ? s.nome[0] : '?',
                                   style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18),
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -308,47 +334,64 @@ class _StartupListPageState extends State<StartupListPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(s.nome,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15)),
+                                    Text(
+                                      s.nome,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
-                                    Text(s.descricao,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 13)),
+                                    Text(
+                                      s.descricao,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
                                     const SizedBox(height: 6),
                                     Row(
                                       children: [
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 2),
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: Colors.blue.shade100,
-                                            borderRadius:
-                                                BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
-                                          child: Text(s.estagio,
-                                              style: const TextStyle(
-                                                  fontSize: 11)),
+                                          child: Text(
+                                            s.estagio,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                            ),
+                                          ),
                                         ),
                                         const SizedBox(width: 6),
-                                        Text('📍 ${s.setor}',
-                                            style:
-                                                const TextStyle(fontSize: 12)),
+                                        Text(
+                                          '📍 ${s.setor}',
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
                                       ],
                                     ),
                                     const SizedBox(height: 4),
-                                    Text('💰 ${s.capital}',
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.w600)),
+                                    Text(
+                                      '💰 ${s.capital}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.chevron_right,
-                                  color: Colors.grey),
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey,
+                              ),
                             ],
                           ),
                         ),
