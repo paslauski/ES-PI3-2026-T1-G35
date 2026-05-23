@@ -38,47 +38,46 @@ class Startup {
   factory Startup.fromFirestore(Map<String, dynamic> data, String id) {
     // NOVO: converte lista de sócios vinda do Firestore
     // DEPOIS — trata tanto array quanto map
-  
+
     List<Socio> socios = [];
-      if (data['socios'] != null) {
-        try {
-    // tenta ler como array (lista normal)
-          socios = (data['socios'] as List)
+    if (data['socios'] != null) {
+      try {
+        // tenta ler como array (lista normal)
+        socios = (data['socios'] as List)
             .map((s) => Socio.fromMap(Map<String, dynamic>.from(s)))
             .toList();
-  } catch (_) {
-    // se falhar, tenta ler como map
-    final map = Map<String, dynamic>.from(data['socios']);
-    socios = map.values
-        .map((s) => Socio.fromMap(Map<String, dynamic>.from(s)))
-        .toList();
-  }
-}
+      } catch (_) {
+        // se falhar, tenta ler como map
+        final map = Map<String, dynamic>.from(data['socios']);
+        socios = map.values
+            .map((s) => Socio.fromMap(Map<String, dynamic>.from(s)))
+            .toList();
+      }
+    }
 
-    
     // Mudou pq no Firestore agora é map (ex: {0: "pergunta", 1: "resposta"})
     // então pegamos os valores do map ordenados pela chave
     // DEPOIS — lê array de maps com campos 'pergunta' e 'resposta'
     List<String> prs = [];
-      if (data['perguntas_respostas'] != null) {
-        for (final item in data['perguntas_respostas']) {
-          final map = Map<String, dynamic>.from(item);
-          if (map['pergunta'] != null) prs.add(map['pergunta'].toString());
-          if (map['resposta'] != null) prs.add(map['resposta'].toString());
-  }
-}
+    if (data['perguntas_respostas'] != null) {
+      for (final item in data['perguntas_respostas']) {
+        final map = Map<String, dynamic>.from(item);
+        if (map['pergunta'] != null) prs.add(map['pergunta'].toString());
+        if (map['resposta'] != null) prs.add(map['resposta'].toString());
+      }
+    }
 
     return Startup(
       id: id,
-      nome: data['nome'] ?? '',
-      descricao: data['descricao'] ?? '',
-      estagio: data['estagio'] ?? '',
-      setor: data['setor'] ?? '',
-      status: data['status'] ?? '',
-      capital: data['capital'] ?? '',
-      sumarioExecutivo: data['sumario_executivo'] ?? '',
-      totalTokens: data['total_tokens'] ?? '',
-      precoToken: data['preco_token'] ?? '',
+      nome: data['nome']?.toString() ?? '',
+      descricao: data['descricao']?.toString() ?? '',
+      estagio: data['estagio']?.toString() ?? '',
+      setor: data['setor']?.toString() ?? '',
+      status: data['status']?.toString() ?? '',
+      capital: data['capital']?.toString() ?? '',
+      sumarioExecutivo: data['sumario_executivo']?.toString() ?? '',
+      totalTokens: data['total_tokens']?.toString() ?? '',
+      precoToken: data['preco_token']?.toString() ?? '',
       socios: socios,
       perguntasRespostas: prs,
     );
@@ -95,9 +94,9 @@ class Socio {
 
   factory Socio.fromMap(Map<String, dynamic> data) {
     return Socio(
-      nome: data['nome'] ?? '',
-      cargo: data['cargo'] ?? '',
-      percentual: data['percentual'] ?? '',
+      nome: data['nome']?.toString() ?? '',
+      cargo: data['cargo']?.toString() ?? '',
+      percentual: data['percentual']?.toString() ?? '',
     );
   }
 }
