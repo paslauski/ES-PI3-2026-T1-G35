@@ -1,10 +1,63 @@
 // Mateus - Tela detalhada da Startup
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../models/startup_model.dart';
+import '../../services/token_service.dart';
 
 class StartupDetailPage extends StatelessWidget {
   final Startup startup;
   const StartupDetailPage({super.key, required this.startup});
+
+  double _converterPrecoToken(String valor) {
+    final limpo = valor
+        .replaceAll('R\$', '')
+        .replaceAll(' ', '')
+        .replaceAll(',', '.');
+
+    return double.tryParse(limpo) ?? 0;
+  }
+
+  Future<void> _comprarUmToken(BuildContext context) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        throw Exception('Usuário não está logado.');
+      }
+
+      final precoToken = _converterPrecoToken(startup.precoToken);
+
+      if (precoToken <= 0) {
+        throw Exception('Preço do token inválido.');
+      }
+
+      await TokenService().comprarTokens(
+        usuarioId: user.uid,
+        startupId: startup.id,
+        quantidade: 1,
+        precoToken: precoToken,
+      );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Token comprado com sucesso!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao comprar token: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +81,10 @@ class StartupDetailPage extends StatelessWidget {
                   child: Text(
                     startup.nome.isNotEmpty ? startup.nome[0] : '?',
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -38,9 +92,13 @@ class StartupDetailPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(startup.nome,
-                          style: const TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text(
+                        startup.nome,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       Row(
                         children: [
@@ -60,9 +118,11 @@ class StartupDetailPage extends StatelessWidget {
             // Descrição do projeto
             _tituloSecao('📋 Descrição do Projeto'),
             const SizedBox(height: 8),
-            _caixaTexto(startup.descricao.isNotEmpty
-                ? startup.descricao
-                : 'Sem descrição disponível.'),
+            _caixaTexto(
+              startup.descricao.isNotEmpty
+                  ? startup.descricao
+                  : 'Sem descrição disponível.',
+            ),
 
             const SizedBox(height: 16),
 
@@ -88,6 +148,18 @@ class StartupDetailPage extends StatelessWidget {
 
             const SizedBox(height: 20),
 
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.shopping_cart),
+                label: const Text('Comprar 1 token'),
+                onPressed: () => _comprarUmToken(context),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
             // Estrutura societária
             _tituloSecao('🤝 Estrutura Societária'),
             const SizedBox(height: 8),
@@ -99,31 +171,41 @@ class StartupDetailPage extends StatelessWidget {
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         child: ListTile(
                           leading: CircleAvatar(
                             backgroundColor: Colors.blue.shade100,
-                            child: Text(socio.nome.isNotEmpty ? socio.nome[0] : '?',
-                                style: const TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold)),
+                            child: Text(
+                              socio.nome.isNotEmpty ? socio.nome[0] : '?',
+                              style: const TextStyle(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                          title: Text(socio.nome,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          title: Text(
+                            socio.nome,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           subtitle: Text(socio.cargo),
                           trailing: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.blue,
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Text(socio.percentual,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13)),
+                            child: Text(
+                              socio.percentual,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
                         ),
                       );
@@ -156,8 +238,10 @@ class StartupDetailPage extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(isPergunta ? '❓ ' : '💬 ',
-                          style: const TextStyle(fontSize: 16)),
+                      Text(
+                        isPergunta ? '❓ ' : '💬 ',
+                        style: const TextStyle(fontSize: 16),
+                      ),
                       Expanded(child: Text(entry.value)),
                     ],
                   ),
@@ -167,8 +251,10 @@ class StartupDetailPage extends StatelessWidget {
 
             const SizedBox(height: 20),
             Center(
-              child: Text('Dados simulados para fins acadêmicos.',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+              child: Text(
+                'Dados simulados para fins acadêmicos.',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              ),
             ),
             const SizedBox(height: 20),
           ],
@@ -177,56 +263,61 @@ class StartupDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _tituloSecao(String titulo) => Text(titulo,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold));
+  Widget _tituloSecao(String titulo) => Text(
+    titulo,
+    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  );
 
   Widget _caixaTexto(String texto) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(10)),
-        child: Text(texto, style: const TextStyle(fontSize: 14)),
-      );
+    width: double.infinity,
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.grey.shade100,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Text(texto, style: const TextStyle(fontSize: 14)),
+  );
 
   Widget _caixaLinhas(List<Widget> linhas) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(10)),
-        child: Column(children: linhas),
-      );
+    width: double.infinity,
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.grey.shade100,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Column(children: linhas),
+  );
 
   Widget _linha(String label, String valor) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label,
-                style:
-                    const TextStyle(color: Colors.black54, fontSize: 13)),
-            Flexible(
-              child: Text(
-                valor.isNotEmpty ? valor : '—',
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 13),
-                textAlign: TextAlign.right,
-              ),
-            ),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.black54, fontSize: 13),
         ),
-      );
+        Flexible(
+          child: Text(
+            valor.isNotEmpty ? valor : '—',
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _badge(String texto, Color cor) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: cor.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cor.withOpacity(0.5)),
-        ),
-        child: Text(texto,
-            style: TextStyle(
-                fontSize: 11, color: cor, fontWeight: FontWeight.w600)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: cor.withOpacity(0.15),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: cor.withOpacity(0.5)),
+    ),
+    child: Text(
+      texto,
+      style: TextStyle(fontSize: 11, color: cor, fontWeight: FontWeight.w600),
+    ),
+  );
 }
