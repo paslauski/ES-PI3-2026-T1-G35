@@ -12,15 +12,12 @@ class Startup {
   final String status;
   final String capital;
 
-  // campos necessários para a tela detalhada
+  // NOVO: campos necessários para a tela detalhada
   final String sumarioExecutivo;
   final String totalTokens;
-  final double precoToken;
+  final String precoToken;
   final List<Socio> socios;
   final List<String> perguntasRespostas;
-
-  // 🎬 URL do vídeo de apresentação (Firebase Storage)
-  final String videoUrl;
 
   Startup({
     required this.id,
@@ -30,23 +27,27 @@ class Startup {
     required this.setor,
     required this.status,
     required this.capital,
+    // NOVO: opcionais com valor padrão — não quebra se não vier do Firebase
     this.sumarioExecutivo = '',
     this.totalTokens = '',
-    this.precoToken = 0.0,
+    this.precoToken = '',
     this.socios = const [],
     this.perguntasRespostas = const [],
-    this.videoUrl = '',
   });
 
   factory Startup.fromFirestore(Map<String, dynamic> data, String id) {
-    // Converte lista de sócios vinda do Firestore — trata tanto array quanto map
+    // NOVO: converte lista de sócios vinda do Firestore
+    // DEPOIS — trata tanto array quanto map
+
     List<Socio> socios = [];
     if (data['socios'] != null) {
       try {
+        // tenta ler como array (lista normal)
         socios = (data['socios'] as List)
             .map((s) => Socio.fromMap(Map<String, dynamic>.from(s)))
             .toList();
       } catch (_) {
+        // se falhar, tenta ler como map
         final map = Map<String, dynamic>.from(data['socios']);
         socios = map.values
             .map((s) => Socio.fromMap(Map<String, dynamic>.from(s)))
@@ -54,7 +55,9 @@ class Startup {
       }
     }
 
-    // Lê array de maps com campos 'pergunta' e 'resposta'
+    // Mudou pq no Firestore agora é map (ex: {0: "pergunta", 1: "resposta"})
+    // então pegamos os valores do map ordenados pela chave
+    // DEPOIS — lê array de maps com campos 'pergunta' e 'resposta'
     List<String> prs = [];
     if (data['perguntas_respostas'] != null) {
       for (final item in data['perguntas_respostas']) {
@@ -66,24 +69,22 @@ class Startup {
 
     return Startup(
       id: id,
-      nome: data['nome'] ?? '',
-      descricao: data['descricao'] ?? '',
-      estagio: data['estagio'] ?? '',
-      setor: data['setor'] ?? '',
-      status: data['status'] ?? '',
-      capital: data['capital'] ?? '',
-      sumarioExecutivo: data['sumario_executivo'] ?? '',
+      nome: data['nome']?.toString() ?? '',
+      descricao: data['descricao']?.toString() ?? '',
+      estagio: data['estagio']?.toString() ?? '',
+      setor: data['setor']?.toString() ?? '',
+      status: data['status']?.toString() ?? '',
+      capital: data['capital']?.toString() ?? '',
+      sumarioExecutivo: data['sumario_executivo']?.toString() ?? '',
       totalTokens: data['total_tokens']?.toString() ?? '',
-      precoToken: (data['preco_token'] as num?)?.toDouble() ?? 0.0,
+      precoToken: data['preco_token']?.toString() ?? '',
       socios: socios,
       perguntasRespostas: prs,
-      // 🎬 lê a URL do vídeo — campo 'videoUrl' no Firestore
-      videoUrl: data['videoUrl'] ?? '',
     );
   }
 }
 
-// Classe separada para representar cada sócio
+// NOVO: classe separada para representar cada sócio
 class Socio {
   final String nome;
   final String cargo;
@@ -93,9 +94,9 @@ class Socio {
 
   factory Socio.fromMap(Map<String, dynamic> data) {
     return Socio(
-      nome: data['nome'] ?? '',
-      cargo: data['cargo'] ?? '',
-      percentual: data['percentual'] ?? '',
+      nome: data['nome']?.toString() ?? '',
+      cargo: data['cargo']?.toString() ?? '',
+      percentual: data['percentual']?.toString() ?? '',
     );
   }
 }

@@ -1,86 +1,80 @@
-// Mateus - Backend: lógica de compra de tokens
-// Roda no servidor Firebase, não no Flutter
-
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { db } from "../shared/firebase";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
-export const comprarTokens = onCall({ cors: true }, async (request) => {
+export const comprarTokens = onCall(async (request) => {
+  const uid = request.auth?.uid;
 
-  // BARREIRA 1: só usuário logado pode comprar
-  if (!request.auth) {
-    throw new HttpsError(
-      "unauthenticated",
-      "Você precisa estar logado para comprar tokens."
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "Usuário não autenticado.");
+  }
+
+  const { startupId, quantidade, precoToken } = request.data;
+
+  if (!startupId || !quantidade || !precoToken) {
+    throw new HttpsError("invalid-argument", "Dados incompletos.");
+  }
+
+  if (quantidade <= 0 || precoToken <= 0) {
+    throw new HttpsError("invalid-argument", "Quantidade ou preço inválido.");
+  }
+
+  const db = getFirestore();
+
+  const usuarioRef = db.collection("usuarios").doc(uid);
+  const startupRef = db.collection("startups").doc(startupId);
+  const transacaoRef = db.collection("transacoes").doc();
+
+  await db.runTransaction(async (transaction) => {
+    const usuarioSnap = await transaction.get(usuarioRef);
+    const startupSnap = await transaction.get(startupRef);
+
+    if (!usuarioSnap.exists) {
+      throw new HttpsError("not-found", "Usuário não encontrado.");
+    }
+
+    if (!startupSnap.exists) {
+      throw new HttpsError("not-found", "Startup não encontrada.");
+    }
+
+    const usuario = usuarioSnap.data()!;
+    const startup = startupSnap.data()!;
+
+    const saldoAtual = Number(usuario.saldo ?? 0);
+    const tokensDisponiveis = Number(
+      startup.tokens_disponiveis ?? startup.total_tokens ?? 0
     );
-  }
 
-  const { startupId, quantidade } = request.data;
-  const uid = request.auth.uid;
+    const valorTotal = Number(quantidade) * Number(precoToken);
 
-  // BARREIRA 2: valida os dados recebidos do Flutter
-  if (!startupId || typeof startupId !== "string") {
-    throw new HttpsError("invalid-argument", "ID da startup inválido.");
-  }
-  if (!quantidade || typeof quantidade !== "number" || quantidade <= 0) {
-    throw new HttpsError("invalid-argument", "Quantidade inválida.");
-  }
+    if (saldoAtual < valorTotal) {
+      throw new HttpsError("failed-precondition", "Saldo insuficiente.");
+    }
 
-  // Busca dados da startup e do usuário ao mesmo tempo
-  const [startupDoc, userDoc] = await Promise.all([
-    db.collection("startups").doc(startupId).get(),
-    db.collection("usuarios").doc(uid).get(),
-  ]);
+    if (tokensDisponiveis < quantidade) {
+      throw new HttpsError("failed-precondition", "Tokens insuficientes.");
+    }
 
-  // BARREIRA 3: startup existe?
-  if (!startupDoc.exists) {
-    throw new HttpsError("not-found", "Startup não encontrada.");
-  }
+    transaction.update(usuarioRef, {
+      saldo: saldoAtual - valorTotal,
+    });
 
-  const startup = startupDoc.data()!;
-  const usuario = userDoc.data();
+    transaction.update(startupRef, {
+      tokens_disponiveis: tokensDisponiveis - quantidade,
+    });
 
-  // BARREIRA 4: usuário existe no banco?
-  if (!usuario) {
-    throw new HttpsError("not-found", "Usuário não encontrado no banco.");
-  }
-
-  const precoToken = startup.preco_token as number;
-  const saldoAtual = (usuario.saldo ?? 0) as number;
-  const totalGasto = quantidade * precoToken;
-
-  // BARREIRA 5: saldo suficiente?
-  if (saldoAtual < totalGasto) {
-    throw new HttpsError(
-      "failed-precondition",
-      `Saldo insuficiente. Você tem R$ ${saldoAtual.toFixed(2)} mas a compra custa R$ ${totalGasto.toFixed(2)}.`
-    );
-  }
-
-  const novoSaldo = saldoAtual - totalGasto;
-
-  // Executa as duas operações ao mesmo tempo:
-  // 1. Desconta o saldo do usuário
-  // 2. Registra a transação na coleção 'transacoes'
-  await Promise.all([
-    db.collection("usuarios").doc(uid).update({ saldo: novoSaldo }),
-    db.collection("transacoes").add({
-      uid_usuario: uid,
-      startup_id: startupId,
-      startup_nome: startup.nome ?? "",
+    transaction.set(transacaoRef, {
+      usuarioId: uid,
+      startupId,
+      quantidade,
+      precoToken,
+      valorTotal,
       tipo: "compra",
-      quantidade_tokens: quantidade,
-      preco_token: precoToken,
-      total_gasto: totalGasto,
-      saldo_antes: saldoAtual,
-      saldo_depois: novoSaldo,
-      data: new Date().toISOString(),
-    }),
-  ]);
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  });
 
-  // Retorna pro Flutter com sucesso
   return {
     sucesso: true,
-    mensagem: `Compra realizada! Você comprou ${quantidade} tokens por R$ ${totalGasto.toFixed(2)}.`,
-    novoSaldo: novoSaldo,
+    mensagem: "Tokens comprados com sucesso.",
   };
 });
