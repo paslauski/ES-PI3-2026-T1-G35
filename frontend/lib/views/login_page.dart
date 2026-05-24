@@ -1,19 +1,23 @@
-// Isabela
-
-// 📌 IMPORTANTE
-// VIEW = tela visual do app (o que o usuário vê)
+// Isabela + Mateus
 
 import 'package:flutter/material.dart';
 
-// 🔹 importa o service (responsável por falar com Firebase)
 import '../services/auth_service.dart';
-
-// 🔹 telas que vamos navegar
 import 'cadastro_page.dart';
 import 'esqueci_senha_page.dart';
+import 'home_page.dart';
 
-// 🔹 StatefulWidget = tela que pode mudar (estado dinâmico)
-// Ex: loading, erro, texto digitado
+/*
+Tela de Login do sistema MesclaInvest.
+
+Responsável por:
+- autenticar usuários no Firebase;
+- validar campos do formulário;
+- tratar mensagens de erro;
+- redirecionar o usuário após login;
+- permitir acesso às telas de cadastro e recuperação de senha.
+*/
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -21,22 +25,34 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-// 🔹 STATE = onde fica a lógica da tela
+/*
+State da tela de login.
+
+Controla:
+- estados visuais da interface;
+- carregamento durante autenticação;
+- validações do formulário;
+- comunicação com o AuthService.
+*/
+
 class _LoginPageState extends State<LoginPage> {
-  // 📌 FORMKEY = controla e valida o formulário
+  // Chave utilizada para validar o formulário
   final _formKey = GlobalKey<FormState>();
 
-  // 📌 CONTROLLERS = capturam o que o usuário digita
+  // Controllers responsáveis por capturar os dados digitados
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
 
-  // 📌 SERVICE = classe que conversa com Firebase
+  // Serviço responsável pela autenticação no Firebase
   final AuthService _authService = AuthService();
 
-  // 📌 variável de controle (loading)
+  // Controla estado de loading durante login
   bool _carregando = false;
 
-  // 🔹 LIBERA MEMÓRIA quando sair da tela
+  /*
+  Libera os controllers da memória ao destruir a tela.
+  Evita vazamentos de memória no aplicativo.
+  */
   @override
   void dispose() {
     _emailController.dispose();
@@ -44,75 +60,103 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  //Mateus
-  //Criando função PRIVATE
-  //Para traduzir os erros!
-
+  /*
+  Traduz mensagens de erro do Firebase Authentication
+  para mensagens amigáveis em português.
+  */
   String _traduzirErro(String erro) {
     if (erro.contains('user-not-found') ||
         erro.contains('invalid-credential')) {
-      return 'E-mail ou senha incorretos. Verifique seus dados.';
-    } else if (erro.contains('wrong-password')) {
-      return 'Senha incorreta. Tente novamente.';
-    } else if (erro.contains('invalid-email')) {
-      return 'O e-mail informado não é válido.';
-    } else if (erro.contains('user-disabled')) {
-      return 'Esta conta foi desativada. Entre em contato com o suporte.';
-    } else if (erro.contains('too-many-requests')) {
-      return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
-    } else if (erro.contains('network-request-failed')) {
-      return 'Sem conexão com a internet. Verifique sua rede.';
+      return 'E-mail ou senha incorretos.';
     }
-    return 'Ocorreu um erro inesperado. Tente novamente.';
+
+    if (erro.contains('wrong-password')) {
+      return 'Senha incorreta.';
+    }
+
+    if (erro.contains('invalid-email')) {
+      return 'E-mail inválido.';
+    }
+
+    if (erro.contains('user-disabled')) {
+      return 'Conta desativada.';
+    }
+
+    if (erro.contains('too-many-requests')) {
+      return 'Muitas tentativas. Aguarde.';
+    }
+
+    if (erro.contains('network-request-failed')) {
+      return 'Sem conexão com a internet.';
+    }
+
+    return 'Erro inesperado. Tente novamente.';
   }
 
-  // 🔹 FUNÇÃO PRINCIPAL DO LOGIN
-  // Essa função roda quando o usuário clica no botão "ENTRAR"
+  /*
+  Realiza autenticação do usuário.
+
+  Fluxo:
+  1. Valida formulário;
+  2. Ativa loading;
+  3. Executa login via Firebase;
+  4. Exibe feedback visual;
+  5. Redireciona para HomePage.
+  */
   Future<void> _fazerLogin() async {
-    // 1. valida se os campos estão preenchidos corretamente
+    // Impede login caso formulário seja inválido
     if (!_formKey.currentState!.validate()) return;
 
-    // 2. ativa o loading (mostra a bolinha)
     setState(() => _carregando = true);
 
     try {
-      // 3. chama o Firebase (via AuthService)
+      // Executa login no Firebase Authentication
       await _authService.login(
         _emailController.text.trim(),
         _senhaController.text.trim(),
       );
 
-      // evita erro se a tela já tiver sido destruída
       if (!mounted) return;
 
-      // 4. mensagem de sucesso
+      // Feedback visual de sucesso
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Login realizado com sucesso!'),
-          backgroundColor: Colors.green,
+          backgroundColor: Color(0xFF00C897),
         ),
       );
 
-      // 🔹 REDIRECIONAMENTO para a Home após login
-      // Após login com sucesso, manda o usuário para a tela inicial do app
-      Future.delayed(const Duration(seconds: 2), () {
+      // Aguarda pequeno intervalo antes da navegação
+      Future.delayed(const Duration(milliseconds: 800), () {
         if (!mounted) return;
 
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const HomePage(),
+          ),
+        );
       });
-
-      //Mateus Substitui o antigo catch
-      //Agora chama a função e traduz os erros
     } catch (e) {
       if (!mounted) return;
-      final mensagem = _traduzirErro(e.toString());
+
+      // Exibe mensagem de erro personalizada
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error_outline, color: Colors.white),
+              const Icon(
+                Icons.error_outline,
+                color: Colors.white,
+              ),
+
               const SizedBox(width: 8),
-              Expanded(child: Text(mensagem)),
+
+              Expanded(
+                child: Text(
+                  _traduzirErro(e.toString()),
+                ),
+              ),
             ],
           ),
           backgroundColor: Colors.red,
@@ -120,49 +164,47 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } finally {
-      if (!mounted) return;
-
-      // 6. desativa loading
-      setState(() => _carregando = false);
+      // Remove loading ao finalizar processo
+      if (mounted) {
+        setState(() => _carregando = false);
+      }
     }
   }
 
-  // 🔹 VALIDAÇÃO DE CAMPO OBRIGATÓRIO
-  String? _validarObrigatorio(String? value, String campo) {
-    if (value == null || value.trim().isEmpty) {
+  /*
+  Validação genérica para campos obrigatórios.
+  */
+  String? _validarObrigatorio(String? v, String campo) {
+    if (v == null || v.trim().isEmpty) {
       return 'Informe $campo';
     }
+
     return null;
   }
 
-  // 🔹 VALIDAÇÃO DE SENHA
-  String? _validarSenha(String? value) {
-    if (value == null || value.trim().isEmpty) {
+  /*
+  Validação específica da senha.
+  */
+  String? _validarSenha(String? v) {
+    if (v == null || v.trim().isEmpty) {
       return 'Informe a senha';
     }
-    if (value.length < 6) {
-      return 'Senha deve ter pelo menos 6 caracteres';
+
+    if (v.length < 6) {
+      return 'Mínimo 6 caracteres';
     }
+
     return null;
   }
 
-  // 🔹 PADRÃO VISUAL DOS INPUTS (pra não repetir código)
-  InputDecoration _decoracao(String label) {
-    return InputDecoration(
-      labelText: label,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-    );
-  }
-
-  // 🔹 BUILD = monta a tela (UI)
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Entrar - MesclaInvest')),
+      backgroundColor: const Color(0xFFF5F5FA),
 
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
 
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
@@ -172,84 +214,159 @@ class _LoginPageState extends State<LoginPage> {
 
               child: Column(
                 children: [
-                  // 🔹 Ícone (visual)
-                  const Icon(Icons.account_balance, size: 70),
+                  /*
+                  Logo principal da aplicação.
+                  */
+                  Container(
+                    width: 80,
+                    height: 80,
 
-                  const SizedBox(height: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A2E),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
 
-                  // 🔹 Título
-                  const Text(
-                    'Bem-vinda ao MesclaInvest',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    child: const Icon(
+                      Icons.account_balance,
+                      color: Colors.white,
+                      size: 40,
+                    ),
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 24),
 
+                  /*
+                  Nome da plataforma.
+                  */
+                  const Text(
+                    'MesclaInvest',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A1A2E),
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  /*
+                  Texto auxiliar da tela.
+                  */
                   const Text(
                     'Entre com seu e-mail e senha',
-                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF888888),
+                      fontSize: 14,
+                    ),
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 36),
 
-                  // 🔹 CAMPO EMAIL
+                  /*
+                  Campo de e-mail.
+                  */
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: _decoracao('E-mail'),
-                    validator: (v) => _validarObrigatorio(v, 'o e-mail'),
+
+                    decoration: const InputDecoration(
+                      hintText: 'E-mail',
+
+                      prefixIcon: Icon(
+                        Icons.email_outlined,
+                        color: Color(0xFFAAAAAA),
+                      ),
+                    ),
+
+                    validator: (v) =>
+                        _validarObrigatorio(v, 'o e-mail'),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  // 🔹 CAMPO SENHA
+                  /*
+                  Campo de senha.
+                  */
                   TextFormField(
                     controller: _senhaController,
                     obscureText: true,
-                    decoration: _decoracao('Senha'),
+
+                    decoration: const InputDecoration(
+                      hintText: 'Senha',
+
+                      prefixIcon: Icon(
+                        Icons.lock_outlined,
+                        color: Color(0xFFAAAAAA),
+                      ),
+                    ),
+
                     validator: _validarSenha,
                   ),
 
                   const SizedBox(height: 24),
 
-                  // 🔹 BOTÃO LOGIN
+                  /*
+                  Botão de login.
+
+                  Durante carregamento, substitui o botão
+                  por indicador visual de progresso.
+                  */
                   _carregando
                       ? const CircularProgressIndicator()
                       : SizedBox(
                           width: double.infinity,
-                          height: 50,
+
                           child: ElevatedButton(
                             onPressed: _fazerLogin,
+
                             child: const Text('ENTRAR'),
                           ),
                         ),
 
                   const SizedBox(height: 12),
 
-                  // 🔹 BOTÃO "ESQUECI MINHA SENHA"
+                  /*
+                  Navegação para recuperação de senha.
+                  */
                   TextButton(
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const EsqueciSenhaPage(),
+                          builder: (_) =>
+                              const EsqueciSenhaPage(),
                         ),
                       );
                     },
-                    child: const Text('Esqueci minha senha'),
+
+                    child: const Text(
+                      'Esqueci minha senha',
+                      style: TextStyle(
+                        color: Color(0xFF6C63FF),
+                      ),
+                    ),
                   ),
 
-                  // 🔹 BOTÃO IR PARA CADASTRO
+                  /*
+                  Navegação para tela de cadastro.
+                  */
                   TextButton(
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const CadastroPage(),
+                          builder: (_) =>
+                              const CadastroPage(),
                         ),
                       );
                     },
-                    child: const Text('Não tem conta? Criar cadastro'),
+
+                    child: const Text(
+                      'Não tem conta? Criar cadastro',
+                      style: TextStyle(
+                        color: Color(0xFF6C63FF),
+                      ),
+                    ),
                   ),
                 ],
               ),

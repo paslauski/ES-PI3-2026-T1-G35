@@ -1,9 +1,23 @@
-// Mateus - Tela de catálogo de startups
+// Mateus - Catálogo de startups
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../models/startup_model.dart';
 import 'startup_detail_page.dart';
+
+/*
+Tela responsável pelo catálogo principal de startups.
+
+Funcionalidades:
+- listar startups cadastradas no Firestore;
+- buscar startups por nome, descrição ou setor;
+- filtrar startups por estágio;
+- abrir detalhes completos da startup;
+- exibir painel do usuário autenticado;
+- realizar logout da aplicação.
+*/
 
 class StartupListPage extends StatefulWidget {
   const StartupListPage({super.key});
@@ -12,9 +26,23 @@ class StartupListPage extends StatefulWidget {
   State<StartupListPage> createState() => _StartupListPageState();
 }
 
+/*
+State responsável pelo gerenciamento:
+- filtros da listagem;
+- busca textual;
+- dados do usuário;
+- integração com Firestore;
+- renderização dinâmica da interface.
+*/
+
 class _StartupListPageState extends State<StartupListPage> {
+  // Filtro atualmente selecionado
   String _filtroEstagio = 'Todos';
+
+  // Texto digitado no campo de busca
   String _busca = '';
+
+  // Lista de estágios disponíveis para filtragem
   final List<String> _estagios = [
     'Todos',
     'nova',
@@ -22,142 +50,267 @@ class _StartupListPageState extends State<StartupListPage> {
     'em expansão',
   ];
 
-  // ── ABRE PAINEL DO USUÁRIO ───────────────────────────────────
-  // Busca os dados do usuário no Firestore e exibe num painel deslizante
+  /*
+  Abre o painel inferior do usuário autenticado.
+
+  Exibe:
+  - nome;
+  - e-mail;
+  - data de cadastro;
+  - saldo disponível;
+  - botão de logout.
+  */
   Future<void> _abrirPainelUsuario() async {
+    // Obtém usuário autenticado
     final user = FirebaseAuth.instance.currentUser;
+
     if (user == null) return;
 
-    // Busca dados extras do Firestore (nome, data de cadastro)
+    // Busca dados do usuário no Firestore
     final doc = await FirebaseFirestore.instance
         .collection('usuarios')
         .doc(user.uid)
         .get();
 
     final dados = doc.data();
+
+    // Recupera informações do usuário
     final nome = dados?['nome'] ?? 'Não informado';
-    final dataCadastro = dados?['dataCriacao'] ?? '';
+    final dataCadastro = dados?['dataCadastro'] ?? '';
+
+    // Recupera saldo financeiro
+    final saldo = (dados?['saldo'] ?? 0).toDouble();
+
+    // Formata saldo em moeda brasileira
+    final saldoFormatado =
+        'R\$ ${saldo.toStringAsFixed(2).replaceAll('.', ',')}';
 
     if (!mounted) return;
 
-    // Exibe painel deslizante de baixo para cima
+    /*
+    Exibe painel inferior modal com dados da conta.
+    */
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return Padding(
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+
+      builder: (ctx) => SingleChildScrollView(
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(24),
+            ),
+          ),
+
           padding: const EdgeInsets.all(24),
+
           child: Column(
-            mainAxisSize: MainAxisSize.min, // painel só do tamanho do conteúdo
+            mainAxisSize: MainAxisSize.min,
+
             children: [
-              // Linha de arraste visual
+              /*
+              Indicador visual superior do modal.
+              */
               Container(
                 width: 40,
                 height: 4,
+
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              const SizedBox(height: 20),
 
-              // Ícone grande do usuário
-              const CircleAvatar(
-                radius: 36,
-                backgroundColor: Colors.blue,
-                child: Icon(Icons.person, size: 40, color: Colors.white),
+              const SizedBox(height: 24),
+
+              /*
+              Avatar padrão do usuário.
+              */
+              Container(
+                width: 72,
+                height: 72,
+
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1A1A2E),
+                  shape: BoxShape.circle,
+                ),
+
+                child: const Icon(
+                  Icons.person,
+                  color: Colors.white,
+                  size: 36,
+                ),
               ),
-              const SizedBox(height: 16),
 
-              // Nome
+              const SizedBox(height: 14),
+
+              /*
+              Nome do usuário.
+              */
               Text(
                 nome,
+
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A2E),
                 ),
               ),
-              const SizedBox(height: 6),
 
-              // E-mail
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.email_outlined,
-                    size: 16,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    user.email ?? 'Não informado',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ],
+              const SizedBox(height: 4),
+
+              /*
+              E-mail da conta autenticada.
+              */
+              Text(
+                user.email ?? '',
+
+                style: const TextStyle(
+                  color: Color(0xFF888888),
+                  fontSize: 13,
+                ),
               ),
-              const SizedBox(height: 6),
 
-              // Data de cadastro
-              if (dataCadastro.isNotEmpty)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              /*
+              Data de cadastro da conta.
+              */
+              if (dataCadastro.isNotEmpty) ...[
+                const SizedBox(height: 4),
+
+                Text(
+                  'Cadastrado em: $dataCadastro',
+
+                  style: const TextStyle(
+                    color: Color(0xFFAAAAAA),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 20),
+
+              /*
+              Card financeiro da carteira do usuário.
+              */
+              Container(
+                width: double.infinity,
+
+                padding: const EdgeInsets.all(18),
+
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF00C897),
+                      Color(0xFF00A67E),
+                    ],
+
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+
+                  borderRadius: BorderRadius.circular(16),
+                ),
+
+                child: Column(
                   children: [
-                    const Icon(
-                      Icons.calendar_today_outlined,
-                      size: 16,
-                      color: Colors.grey,
+                    const Text(
+                      '💰 Carteira MesclaInvest',
+
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
                     ),
-                    const SizedBox(width: 6),
+
+                    const SizedBox(height: 8),
+
+                    /*
+                    Saldo disponível do usuário.
+                    */
                     Text(
-                      'Cadastrado em: $dataCadastro',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      saldoFormatado,
+
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const Text(
+                      'saldo disponível',
+
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
+              ),
 
-              const SizedBox(height: 28),
-              const Divider(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
 
-              // Botão SAIR DA CONTA
+              /*
+              Botão responsável pelo logout da conta.
+              */
               SizedBox(
                 width: double.infinity,
+
                 child: ElevatedButton.icon(
                   onPressed: () async {
-                    Navigator.pop(ctx); // fecha o painel
+                    Navigator.pop(ctx);
+
                     await _fazerLogout();
                   },
+
                   icon: const Icon(Icons.logout),
+
                   label: const Text('Sair da conta'),
+
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: const Color(0xFFFF4D4D),
                     foregroundColor: Colors.white,
+
                     padding: const EdgeInsets.symmetric(vertical: 14),
+
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                 ),
               ),
+
               const SizedBox(height: 8),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  // ── LOGOUT ──────────────────────────────────────────────────
+  /*
+  Realiza logout do Firebase Authentication
+  e retorna usuário para a tela inicial.
+  */
   Future<void> _fazerLogout() async {
     try {
       await FirebaseAuth.instance.signOut();
+
       if (!mounted) return;
-      // Volta para o login e apaga todas as telas da memória
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/',
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
+
+      // Exibe erro caso logout falhe
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao sair: $e'),
@@ -167,101 +320,178 @@ class _StartupListPageState extends State<StartupListPage> {
     }
   }
 
+  /*
+  Define cor visual baseada no estágio da startup.
+  */
+  Color _corEstagio(String estagio) {
+    switch (estagio) {
+      case 'nova':
+        return const Color(0xFF6C63FF);
+
+      case 'em operação':
+        return const Color(0xFF00C897);
+
+      case 'em expansão':
+        return const Color(0xFFFF9500);
+
+      default:
+        return const Color(0xFF888888);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      /*
+      Barra superior principal da tela.
+      */
       appBar: AppBar(
-        title: const Text('Catálogo de Startups'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        title: const Text('MesclaInvest'),
+
+        automaticallyImplyLeading: false,
+
         actions: [
+          /*
+          Botão para retornar à HomePage.
+          */
           IconButton(
-            tooltip: 'Home',
-            icon: const Icon(Icons.home),
+            icon: const Icon(
+              Icons.home_outlined,
+              size: 26,
+            ),
+
             onPressed: () {
               Navigator.pushNamedAndRemoveUntil(
                 context,
                 '/home',
-                (route) => false,
+                (r) => false,
               );
             },
           ),
+
+          /*
+          Botão responsável por abrir painel do usuário.
+          */
+          IconButton(
+            icon: const Icon(
+              Icons.account_circle_outlined,
+              size: 26,
+            ),
+
+            onPressed: _abrirPainelUsuario,
+          ),
+
+          const SizedBox(width: 4),
         ],
       ),
 
       body: Column(
         children: [
-          // Campo de busca
+          /*
+          Campo de busca de startups.
+          */
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+
             child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Buscar por nome, setor...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+              decoration: const InputDecoration(
+                hintText: 'Buscar startups...',
+
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Color(0xFFAAAAAA),
                 ),
               ),
-              onChanged: (v) => setState(() => _busca = v.toLowerCase()),
+
+              onChanged: (v) {
+                setState(() => _busca = v.toLowerCase());
+              },
             ),
           ),
 
-          // Filtro por estágio
+          /*
+          Filtros horizontais por estágio.
+          */
           SizedBox(
-            height: 46,
+            height: 48,
+
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: _estagios.map((estagio) {
-                final selecionado = _filtroEstagio == estagio;
+
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+
+              children: _estagios.map((e) {
+                final sel = _filtroEstagio == e;
+
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
+
                   child: ChoiceChip(
-                    label: Text(estagio),
-                    selected: selecionado,
-                    selectedColor: Colors.blue,
-                    labelStyle: TextStyle(
-                      color: selecionado ? Colors.white : Colors.black87,
-                      fontWeight: selecionado
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                    label: Text(
+                      e,
+
+                      style: TextStyle(
+                        color: sel
+                            ? Colors.white
+                            : const Color(0xFF555555),
+
+                        fontWeight: sel
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
                     ),
-                    onSelected: (_) => setState(() => _filtroEstagio = estagio),
+
+                    selected: sel,
+
+                    selectedColor: const Color(0xFF6C63FF),
+
+                    onSelected: (_) {
+                      setState(() => _filtroEstagio = e);
+                    },
                   ),
                 );
               }).toList(),
             ),
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
 
-          // Lista do Firestore
+          /*
+          StreamBuilder responsável por atualizar lista em tempo real
+          com dados vindos do Firestore.
+          */
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('startups')
                   .snapshots(),
+
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                /*
+                Exibe loading enquanto dados carregam.
+                */
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
                 }
 
-                if (snapshot.hasError) {
-                  return Center(
+                /*
+                Exibe mensagem caso não existam startups.
+                */
+                if (!snapshot.hasData ||
+                    snapshot.data!.docs.isEmpty) {
+                  return const Center(
                     child: Text(
-                      'Erro ao carregar startups.\nTente novamente.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.red.shade400),
+                      'Nenhuma startup cadastrada.',
                     ),
                   );
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text('Nenhuma startup cadastrada ainda.'),
-                  );
-                }
-
+                /*
+                Converte documentos do Firestore em objetos Startup.
+                */
                 final startups = snapshot.data!.docs
                     .map(
                       (doc) => Startup.fromFirestore(
@@ -270,129 +500,232 @@ class _StartupListPageState extends State<StartupListPage> {
                       ),
                     )
                     .where((s) {
-                      final passaEstagio =
-                          _filtroEstagio == 'Todos' ||
+                  /*
+                  Aplica filtros de estágio e busca textual.
+                  */
+                  final passaEstagio =
+                      _filtroEstagio == 'Todos' ||
                           s.estagio == _filtroEstagio;
-                      final passaBusca =
-                          _busca.isEmpty ||
+
+                  final passaBusca =
+                      _busca.isEmpty ||
                           s.nome.toLowerCase().contains(_busca) ||
                           s.descricao.toLowerCase().contains(_busca) ||
                           s.setor.toLowerCase().contains(_busca);
-                      return passaEstagio && passaBusca;
-                    })
-                    .toList();
 
+                  return passaEstagio && passaBusca;
+                }).toList();
+
+                /*
+                Exibe mensagem caso filtro não encontre resultados.
+                */
                 if (startups.isEmpty) {
                   return const Center(
-                    child: Text('Nenhuma startup encontrada com esse filtro.'),
+                    child: Text(
+                      'Nenhuma startup com esse filtro.',
+                    ),
                   );
                 }
 
+                /*
+                Lista principal de startups.
+                */
                 return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(
+                    16,
+                    0,
+                    16,
+                    16,
+                  ),
+
                   itemCount: startups.length,
+
                   itemBuilder: (context, index) {
                     final s = startups[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 3,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () {
-                          // Clique no card abre a tela detalhada
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => StartupDetailPage(startup: s),
-                            ),
-                          );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              CircleAvatar(
-                                backgroundColor: Colors.blue,
-                                radius: 24,
-                                child: Text(
-                                  s.nome.isNotEmpty ? s.nome[0] : '?',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
+
+                    final cor = _corEstagio(s.estagio);
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+
+                      child: Material(
+                        color: Colors.white,
+
+                        borderRadius: BorderRadius.circular(16),
+
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+
+                          /*
+                          Abre tela de detalhes da startup.
+                          */
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    StartupDetailPage(
+                                  startup: s,
+                                ),
+                              ),
+                            );
+                          },
+
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+
+                            child: Row(
+                              children: [
+                                /*
+                                Ícone visual da startup.
+                                */
+                                Container(
+                                  width: 48,
+                                  height: 48,
+
+                                  decoration: BoxDecoration(
+                                    color:
+                                        cor.withOpacity(0.12),
+
+                                    borderRadius:
+                                        BorderRadius.circular(
+                                      14,
+                                    ),
+                                  ),
+
+                                  child: Center(
+                                    child: Text(
+                                      s.nome.isNotEmpty
+                                          ? s.nome[0]
+                                          : '?',
+
+                                      style: TextStyle(
+                                        color: cor,
+                                        fontWeight:
+                                            FontWeight.bold,
+                                        fontSize: 20,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      s.nome,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
+
+                                const SizedBox(width: 14),
+
+                                /*
+                                Informações da startup.
+                                */
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+
+                                    children: [
+                                      Text(
+                                        s.nome,
+
+                                        style: const TextStyle(
+                                          fontWeight:
+                                              FontWeight.w700,
+                                          fontSize: 15,
+                                          color:
+                                              Color(0xFF1A1A2E),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      s.descricao,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.blue.shade100,
-                                            borderRadius: BorderRadius.circular(
-                                              20,
+
+                                      const SizedBox(height: 4),
+
+                                      Text(
+                                        s.descricao,
+                                        maxLines: 1,
+                                        overflow:
+                                            TextOverflow.ellipsis,
+
+                                        style: const TextStyle(
+                                          color:
+                                              Color(0xFF888888),
+                                          fontSize: 13,
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 8),
+
+                                      /*
+                                      Informações complementares.
+                                      */
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 3,
+                                            ),
+
+                                            decoration:
+                                                BoxDecoration(
+                                              color: cor.withOpacity(
+                                                  0.1),
+
+                                              borderRadius:
+                                                  BorderRadius
+                                                      .circular(
+                                                20,
+                                              ),
+                                            ),
+
+                                            child: Text(
+                                              s.estagio,
+
+                                              style: TextStyle(
+                                                color: cor,
+                                                fontSize: 11,
+                                                fontWeight:
+                                                    FontWeight
+                                                        .w600,
+                                              ),
                                             ),
                                           ),
-                                          child: Text(
-                                            s.estagio,
+
+                                          const SizedBox(width: 8),
+
+                                          Text(
+                                            s.setor,
+
                                             style: const TextStyle(
-                                              fontSize: 11,
+                                              color:
+                                                  Color(0xFFAAAAAA),
+                                              fontSize: 12,
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          '📍 ${s.setor}',
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '💰 ${s.capital}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.green,
-                                        fontWeight: FontWeight.w600,
+                                        ],
                                       ),
-                                    ),
-                                  ],
+
+                                      const SizedBox(height: 4),
+
+                                      /*
+                                      Capital captado pela startup.
+                                      */
+                                      Text(
+                                        s.capital,
+
+                                        style: const TextStyle(
+                                          color:
+                                              Color(0xFF00C897),
+                                          fontSize: 12,
+                                          fontWeight:
+                                              FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const Icon(
-                                Icons.chevron_right,
-                                color: Colors.grey,
-                              ),
-                            ],
+
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: Color(0xFFCCCCCC),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

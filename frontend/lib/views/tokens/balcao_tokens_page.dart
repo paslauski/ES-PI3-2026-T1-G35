@@ -1,35 +1,100 @@
-//isa
+// Isabela + Mateus - Tela Balcão de Tokens baseada no Figma
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/token_service.dart';
 
+/*
+Tela responsável pelo mercado de tokens.
+
+Funcionalidades:
+- selecionar startups;
+- visualizar preço do token;
+- exibir carteira do usuário;
+- realizar compra de tokens;
+- realizar venda de tokens;
+- mostrar histórico de transações;
+- exibir ofertas simuladas;
+- integrar Firebase Auth;
+- integrar Cloud Firestore.
+*/
+
 class BalcaoTokensPage extends StatefulWidget {
   const BalcaoTokensPage({super.key});
 
   @override
-  State<BalcaoTokensPage> createState() => _BalcaoTokensPageState();
+  State<BalcaoTokensPage> createState() =>
+      _BalcaoTokensPageState();
 }
 
-class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
-  final TextEditingController _quantidadeController = TextEditingController(
-    text: '1',
-  );
+/*
+State responsável pelo gerenciamento:
+- startup selecionada;
+- operações financeiras;
+- carregamento;
+- histórico;
+- integração com Firestore;
+- exibição dinâmica dos dados.
+*/
 
+class _BalcaoTokensPageState
+    extends State<BalcaoTokensPage> {
+  /*
+  ID da startup selecionada.
+  */
   String? _startupId;
+
+  /*
+  Nome da startup selecionada.
+  */
   String _nomeStartup = '';
-  double _precoToken = 10.0;
-  String _tipoOperacao = 'compra';
+
+  /*
+  Símbolo da startup.
+  */
+  String _simbolo = '';
+
+  /*
+  Preço atual do token.
+  */
+  double _precoToken = 0;
+
+  /*
+  Controla carregamento das operações.
+  */
   bool _carregando = false;
 
-  @override
-  void dispose() {
-    _quantidadeController.dispose();
-    super.dispose();
+  /*
+  Lista de startups carregadas.
+  */
+  List<QueryDocumentSnapshot>
+      _todasStartups = [];
+
+  /*
+  Formata valores monetários para BRL.
+  */
+  String _fmt(dynamic v) {
+    final n =
+        double.tryParse((v ?? 0).toString()) ??
+            0;
+
+    return 'R\$ ${n.toStringAsFixed(2).replaceAll('.', ',')}';
   }
 
-  double _converterNumero(dynamic valor, double padrao) {
+  /*
+  Converte valores dinâmicos para double.
+
+  Trata:
+  - números;
+  - strings;
+  - valores monetários.
+  */
+  double _converterNumero(
+    dynamic valor,
+    double padrao,
+  ) {
     if (valor == null) return padrao;
 
     final texto = valor
@@ -38,44 +103,87 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
         .replaceAll(' ', '')
         .replaceAll(',', '.');
 
-    return double.tryParse(texto) ?? padrao;
+    return double.tryParse(texto) ??
+        padrao;
   }
 
-  Future<void> _executarOperacao() async {
-    final user = FirebaseAuth.instance.currentUser;
+  /*
+  Gera símbolo automático da startup.
 
+  Exemplo:
+  Tech Vision -> TV
+  Nubank -> NUB
+  */
+  String _gerarSimbolo(String nome) {
+    final palavras =
+        nome.trim().split(' ');
+
+    if (palavras.length >= 2) {
+      return (palavras[0][0] +
+              palavras[1][0])
+          .toUpperCase();
+    }
+
+    return nome.length >= 3
+        ? nome
+            .substring(0, 3)
+            .toUpperCase()
+        : nome.toUpperCase();
+  }
+
+  /*
+  Executa compra ou venda de tokens.
+
+  Responsável por:
+  - validar usuário;
+  - validar startup;
+  - chamar TokenService;
+  - exibir feedback visual;
+  - tratar erros.
+  */
+  Future<void> _executarOperacao(
+    String tipo,
+    int quantidade,
+  ) async {
+    /*
+    Obtém usuário autenticado.
+    */
+    final user =
+        FirebaseAuth.instance.currentUser;
+
+    /*
+    Validação de login.
+    */
     if (user == null) {
-      _mostrarMensagem('Usuário não está logado.', erro: true);
+      _msg(
+        'Usuário não está logado.',
+        erro: true,
+      );
+
       return;
     }
 
+    /*
+    Validação de startup.
+    */
     if (_startupId == null) {
-      _mostrarMensagem('Selecione uma startup.', erro: true);
-      return;
-    }
+      _msg(
+        'Selecione uma startup.',
+        erro: true,
+      );
 
-    final quantidade = int.tryParse(_quantidadeController.text.trim()) ?? 0;
-
-    if (quantidade <= 0) {
-      _mostrarMensagem('Informe uma quantidade válida.', erro: true);
       return;
     }
 
     setState(() => _carregando = true);
 
     try {
-      final service = TokenService();
-
-      if (_tipoOperacao == 'compra') {
-        await service.comprarTokens(
-          usuarioId: user.uid,
-          startupId: _startupId!,
-          quantidade: quantidade,
-          precoToken: _precoToken,
-          nomeStartup: _nomeStartup,
-        );
-      } else {
-        await service.venderTokens(
+      /*
+      Operação de compra.
+      */
+      if (tipo == 'compra') {
+        await TokenService()
+            .comprarTokens(
           usuarioId: user.uid,
           startupId: _startupId!,
           quantidade: quantidade,
@@ -84,181 +192,681 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
         );
       }
 
-      _mostrarMensagem(
-        _tipoOperacao == 'compra'
-            ? 'Compra realizada com sucesso!'
-            : 'Venda realizada com sucesso!',
+      /*
+      Operação de venda.
+      */
+      else {
+        await TokenService()
+            .venderTokens(
+          usuarioId: user.uid,
+          startupId: _startupId!,
+          quantidade: quantidade,
+          precoToken: _precoToken,
+          nomeStartup: _nomeStartup,
+        );
+      }
+
+      /*
+      Mensagem de sucesso.
+      */
+      _msg(
+        tipo == 'compra'
+            ? '✅ Compra realizada!'
+            : '✅ Venda realizada!',
       );
-    } catch (e) {
-      _mostrarMensagem('Erro: $e', erro: true);
-    } finally {
+    }
+
+    /*
+    Tratamento de erro.
+    */
+    catch (e) {
+      _msg(
+        'Erro: ${e.toString().replaceAll('Exception: ', '')}',
+        erro: true,
+      );
+    }
+
+    finally {
       if (mounted) {
-        setState(() => _carregando = false);
+        setState(
+          () => _carregando = false,
+        );
       }
     }
   }
 
-  void _mostrarMensagem(String texto, {bool erro = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
+  /*
+  Exibe SnackBar de feedback.
+
+  Pode ser:
+  - sucesso;
+  - erro.
+  */
+  void _msg(
+    String texto, {
+    bool erro = false,
+  }) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
       SnackBar(
         content: Text(texto),
-        backgroundColor: erro ? Colors.red : Colors.green,
+
+        backgroundColor: erro
+            ? Colors.red
+            : const Color(0xFF00C897),
+      ),
+    );
+  }
+
+  /*
+  Abre diálogo de compra ou venda.
+
+  Permite:
+  - selecionar quantidade;
+  - visualizar total;
+  - confirmar operação.
+  */
+  void _abrirDialogo(String tipo) {
+    /*
+    Quantidade inicial.
+    */
+    int quantidade = 1;
+
+    showDialog(
+      context: context,
+
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          /*
+          Calcula valor total.
+          */
+          final total =
+              quantidade * _precoToken;
+
+          /*
+          Define se operação é compra.
+          */
+          final isCompra =
+              tipo == 'compra';
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius:
+                  BorderRadius.circular(20),
+            ),
+
+            /*
+            Título do diálogo.
+            */
+            title: Text(
+              isCompra
+                  ? '🛒 Comprar Tokens'
+                  : '📤 Vender Tokens',
+
+              style: const TextStyle(
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+
+            /*
+            Conteúdo principal do diálogo.
+            */
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+
+              children: [
+                /*
+                Nome e símbolo da startup.
+                */
+                Text(
+                  '$_nomeStartup ($_simbolo)',
+
+                  style: const TextStyle(
+                    color:
+                        Color(0xFF888888),
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                /*
+                Preço do token.
+                */
+                Text(
+                  'Preço: ${_fmt(_precoToken)} por token',
+
+                  style: const TextStyle(
+                    fontSize: 13,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                /*
+                Controle de quantidade.
+                */
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.center,
+
+                  children: [
+                    /*
+                    Botão diminuir.
+                    */
+                    IconButton(
+                      onPressed:
+                          quantidade > 1
+                              ? () => setD(
+                                    () =>
+                                        quantidade--,
+                                  )
+                              : null,
+
+                      icon: const Icon(
+                        Icons
+                            .remove_circle_outline,
+
+                        size: 28,
+                      ),
+
+                      color:
+                          const Color(
+                        0xFF6C63FF,
+                      ),
+                    ),
+
+                    /*
+                    Quantidade selecionada.
+                    */
+                    Text(
+                      '$quantidade',
+
+                      style:
+                          const TextStyle(
+                        fontSize: 26,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+
+                    /*
+                    Botão aumentar.
+                    */
+                    IconButton(
+                      onPressed: () {
+                        setD(
+                          () => quantidade++,
+                        );
+                      },
+
+                      icon: const Icon(
+                        Icons
+                            .add_circle_outline,
+
+                        size: 28,
+                      ),
+
+                      color:
+                          const Color(
+                        0xFF6C63FF,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                /*
+                Exibição do valor total.
+                */
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+
+                  decoration: BoxDecoration(
+                    color: (isCompra
+                            ? const Color(
+                                0xFF00C897,
+                              )
+                            : Colors.red)
+                        .withOpacity(0.1),
+
+                    borderRadius:
+                        BorderRadius.circular(
+                      12,
+                    ),
+                  ),
+
+                  child: Text(
+                    'Total: ${_fmt(total)}',
+
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight:
+                          FontWeight.bold,
+
+                      color: isCompra
+                          ? const Color(
+                              0xFF00C897,
+                            )
+                          : Colors.red,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            /*
+            Botões de ação.
+            */
+            actions: [
+              /*
+              Botão cancelar.
+              */
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                },
+
+                child: const Text(
+                  'Cancelar',
+
+                  style: TextStyle(
+                    color:
+                        Color(0xFF888888),
+                  ),
+                ),
+              ),
+
+              /*
+              Botão confirmar operação.
+              */
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+
+                  _executarOperacao(
+                    tipo,
+                    quantidade,
+                  );
+                },
+
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isCompra
+                      ? const Color(
+                          0xFF00C897,
+                        )
+                      : Colors.red,
+
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(
+                      12,
+                    ),
+                  ),
+                ),
+
+                child: Text(
+                  isCompra
+                      ? 'Confirmar Compra'
+                      : 'Confirmar Venda',
+
+                  style: const TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final startupsRef = FirebaseFirestore.instance.collection('startups');
+    /*
+    Usuário autenticado.
+    */
+    final user =
+        FirebaseAuth.instance.currentUser;
 
     return Scaffold(
+      /*
+      Barra superior da tela.
+      */
       appBar: AppBar(
-        title: const Text('Balcão de Tokens'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Balcão de Tokens',
+        ),
 
-        // Botão fixo para voltar para a Home
+        automaticallyImplyLeading: false,
+
         actions: [
+          /*
+          Botão para retornar à Home.
+          */
           IconButton(
-            tooltip: 'Home',
-            icon: const Icon(Icons.home),
+            icon: const Icon(
+              Icons.home_outlined,
+            ),
+
             onPressed: () {
-              Navigator.pushNamedAndRemoveUntil(
+              Navigator
+                  .pushNamedAndRemoveUntil(
                 context,
                 '/home',
-                (route) => false,
+                (r) => false,
               );
             },
           ),
         ],
       ),
+
+      /*
+      Cor de fundo da tela.
+      */
+      backgroundColor:
+          const Color(0xFFF5F5FA),
+
+      /*
+      Conteúdo principal.
+      */
       body: StreamBuilder<QuerySnapshot>(
-        stream: startupsRef.snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Erro: ${snapshot.error}'));
+        /*
+        Stream de startups.
+        */
+        stream: FirebaseFirestore.instance
+            .collection('startups')
+            .snapshots(),
+
+        builder: (
+          context,
+          snapshot,
+        ) {
+          /*
+          Estado de carregamento.
+          */
+          if (snapshot.connectionState ==
+              ConnectionState.waiting) {
+            return const Center(
+              child:
+                  CircularProgressIndicator(),
+            );
           }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+          /*
+          Caso não existam startups.
+          */
+          if (!snapshot.hasData ||
+              snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                'Nenhuma startup cadastrada.',
+              ),
+            );
           }
 
-          final startups = snapshot.data?.docs ?? [];
-
-          if (startups.isEmpty) {
-            return const Center(child: Text('Nenhuma startup cadastrada.'));
-          }
+          /*
+          Lista de startups carregadas.
+          */
+          _todasStartups =
+              snapshot.data!.docs;
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding:
+                const EdgeInsets.all(16),
+
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
               children: [
+                /*
+                Título do seletor.
+                */
                 const Text(
-                  'Negociação simulada',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
+                  'Selecione a Startup',
 
-                const SizedBox(height: 16),
+                  style: TextStyle(
+                    fontWeight:
+                        FontWeight.w600,
 
-                DropdownButtonFormField<String>(
-                  value: _startupId,
-                  decoration: const InputDecoration(
-                    labelText: 'Startup',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: startups.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final nome = (data['nome'] ?? 'Sem nome').toString();
-
-                    return DropdownMenuItem<String>(
-                      value: doc.id,
-                      child: Text(nome),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    final doc = startups.firstWhere((item) => item.id == value);
-                    final data = doc.data() as Map<String, dynamic>;
-
-                    setState(() {
-                      _startupId = doc.id;
-                      _nomeStartup = (data['nome'] ?? '').toString();
-                      _precoToken = _converterNumero(data['preco_token'], 10.0);
-                    });
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                Text(
-                  'Preço do token: R\$ ${_precoToken.toStringAsFixed(2).replaceAll('.', ',')}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-
-                const SizedBox(height: 16),
-
-                TextField(
-                  controller: _quantidadeController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Quantidade de tokens',
-                    border: OutlineInputBorder(),
+                    color:
+                        Color(0xFF1A1A2E),
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
 
-                const Text(
-                  'Tipo de operação',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-
-                RadioListTile<String>(
-                  title: const Text('Comprar'),
-                  value: 'compra',
-                  groupValue: _tipoOperacao,
-                  onChanged: (value) {
-                    setState(() => _tipoOperacao = value!);
-                  },
-                ),
-
-                RadioListTile<String>(
-                  title: const Text('Vender'),
-                  value: 'venda',
-                  groupValue: _tipoOperacao,
-                  onChanged: (value) {
-                    setState(() => _tipoOperacao = value!);
-                  },
-                ),
-
-                const SizedBox(height: 20),
-
-                SizedBox(
+                /*
+                Dropdown de startups.
+                */
+                Container(
                   width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: _carregando ? null : _executarOperacao,
-                    icon: Icon(
-                      _tipoOperacao == 'compra'
-                          ? Icons.shopping_cart
-                          : Icons.sell,
+
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal: 16,
+                  ),
+
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+
+                    borderRadius:
+                        BorderRadius.circular(
+                      14,
                     ),
-                    label: Text(
-                      _carregando
-                          ? 'Processando...'
-                          : _tipoOperacao == 'compra'
-                          ? 'Comprar tokens'
-                          : 'Vender tokens',
+
+                    border: Border.all(
+                      color: const Color(
+                        0xFFE0E0E0,
+                      ),
+                    ),
+                  ),
+
+                  child:
+                      DropdownButtonHideUnderline(
+                    child:
+                        DropdownButton<String>(
+                      value: _startupId,
+
+                      hint: const Text(
+                        'Selecione...',
+                      ),
+
+                      isExpanded: true,
+
+                      /*
+                      Lista dinâmica de startups.
+                      */
+                      items: _todasStartups.map(
+                        (doc) {
+                          final d = doc.data()
+                              as Map<
+                                  String,
+                                  dynamic>;
+
+                          final nome =
+                              (d['nome'] ??
+                                      'Sem nome')
+                                  .toString();
+
+                          final sim =
+                              _gerarSimbolo(
+                            nome,
+                          );
+
+                          return DropdownMenuItem<
+                              String>(
+                            value: doc.id,
+
+                            child: Text(
+                              '$nome ($sim)',
+                            ),
+                          );
+                        },
+                      ).toList(),
+
+                      /*
+                      Atualiza startup selecionada.
+                      */
+                      onChanged: (value) {
+                        final doc =
+                            _todasStartups
+                                .firstWhere(
+                          (e) =>
+                              e.id == value,
+                        );
+
+                        final d =
+                            doc.data()
+                                as Map<String,
+                                    dynamic>;
+
+                        final nome =
+                            (d['nome'] ?? '')
+                                .toString();
+
+                        setState(() {
+                          _startupId = doc.id;
+
+                          _nomeStartup = nome;
+
+                          _simbolo =
+                              _gerarSimbolo(
+                            nome,
+                          );
+
+                          _precoToken =
+                              _converterNumero(
+                            d['preco_token'],
+                            10.0,
+                          );
+                        });
+                      },
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                /*
+                Exibe informações apenas
+                após seleção da startup.
+                */
+                if (_startupId != null) ...[
+                  const SizedBox(height: 16),
 
-                const Text(
-                  'Operações simuladas para fins acadêmicos.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
+                  /*
+                  Card principal do token.
+                  */
+                  Container(
+                    width: double.infinity,
+
+                    padding:
+                        const EdgeInsets.all(
+                      20,
+                    ),
+
+                    decoration: BoxDecoration(
+                      gradient:
+                          const LinearGradient(
+                        colors: [
+                          Color(0xFF6C63FF),
+                          Color(0xFF5A52CC),
+                        ],
+
+                        begin:
+                            Alignment.topLeft,
+
+                        end:
+                            Alignment
+                                .bottomRight,
+                      ),
+
+                      borderRadius:
+                          BorderRadius.circular(
+                        16,
+                      ),
+                    ),
+
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+
+                      children: [
+                        /*
+                        Nome da startup.
+                        */
+                        Text(
+                          '$_nomeStartup ($_simbolo)',
+
+                          style:
+                              const TextStyle(
+                            color:
+                                Colors.white70,
+
+                            fontSize: 13,
+                          ),
+                        ),
+
+                        const SizedBox(
+                          height: 8,
+                        ),
+
+                        /*
+                        Preço atual do token.
+                        */
+                        Text(
+                          _precoToken
+                              .toStringAsFixed(
+                                2,
+                              )
+                              .replaceAll(
+                                '.',
+                                ',',
+                              ),
+
+                          style:
+                              const TextStyle(
+                            color:
+                                Colors.white,
+
+                            fontSize: 36,
+
+                            fontWeight:
+                                FontWeight
+                                    .bold,
+                          ),
+                        ),
+
+                        const SizedBox(
+                          height: 16,
+                        ),
+
+                        /*
+                        Gráfico simulado.
+                        */
+                        SizedBox(
+                          height: 40,
+
+                          child: CustomPaint(
+                            size: const Size(
+                              double.infinity,
+                              40,
+                            ),
+
+                            painter:
+                                _GraficoLinhaPainter(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           );
@@ -266,4 +874,175 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
       ),
     );
   }
+
+  /*
+  Cabeçalho padrão das tabelas.
+  */
+  Widget _cabecalhoTabela() => Container(
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 10,
+        ),
+
+        decoration: const BoxDecoration(
+          color: Color(0xFFF5F5FA),
+
+          borderRadius:
+              BorderRadius.vertical(
+            top: Radius.circular(14),
+          ),
+        ),
+
+        child: const Row(
+          children: [
+            Text('Tipo'),
+          ],
+        ),
+      );
+
+  /*
+  Linha padrão de oferta.
+  */
+  Widget _linhaOferta(
+    String tipo,
+    String quantidade,
+    String valor,
+    bool isCompra,
+  ) =>
+      Padding(
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 10,
+        ),
+
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                tipo,
+
+                style: TextStyle(
+                  color: isCompra
+                      ? const Color(
+                          0xFF00C897,
+                        )
+                      : Colors.red,
+
+                  fontWeight:
+                      FontWeight.w600,
+
+                  fontSize: 13,
+                ),
+              ),
+            ),
+
+            Expanded(
+              child: Text(
+                quantidade,
+
+                style: const TextStyle(
+                  color:
+                      Color(0xFF444444),
+
+                  fontSize: 13,
+                ),
+              ),
+            ),
+
+            Expanded(
+              child: Text(
+                valor,
+
+                textAlign: TextAlign.right,
+
+                style: const TextStyle(
+                  color:
+                      Color(0xFF1A1A2E),
+
+                  fontWeight:
+                      FontWeight.w600,
+
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+/*
+Painter responsável pelo gráfico
+simulado de valorização.
+*/
+
+class _GraficoLinhaPainter
+    extends CustomPainter {
+  @override
+  void paint(
+    Canvas canvas,
+    Size size,
+  ) {
+    /*
+    Configuração visual da linha.
+    */
+    final paint = Paint()
+      ..color =
+          Colors.white.withOpacity(0.6)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    /*
+    Pontos simulados do gráfico.
+    */
+    final pontos = [
+      0.6,
+      0.5,
+      0.55,
+      0.45,
+      0.5,
+      0.4,
+      0.45,
+      0.35,
+      0.3,
+      0.2,
+    ];
+
+    final path = Path();
+
+    /*
+    Montagem da linha do gráfico.
+    */
+    for (int i = 0;
+        i < pontos.length;
+        i++) {
+      final x =
+          size.width *
+              i /
+              (pontos.length - 1);
+
+      final y =
+          size.height * pontos[i];
+
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    /*
+    Desenha gráfico na tela.
+    */
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(
+    covariant CustomPainter oldDelegate,
+  ) =>
+      false;
 }
