@@ -8,3 +8,4 @@ setGlobalOptions({ region: "southamerica-east1" });
 // A lista de todos os nossos robôs disponíveis:
 export { createStartup } from "./startups/handlers/createStartup";
 export { listStartups } from "./startups/handlers/listStartups";
+export { comprarTokens } from "./startups/handlers/comprarTokens";
