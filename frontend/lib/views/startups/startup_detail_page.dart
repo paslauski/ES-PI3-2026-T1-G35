@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../models/startup_model.dart';
 import '../../services/token_service.dart';
+import 'perguntas_widget.dart';
 
 /*
 Tela responsável pela visualização detalhada da startup.
@@ -778,75 +779,10 @@ class _StartupDetailPageState
             /*
             Perguntas e respostas da startup.
             */
-            if (s.perguntasRespostas
-                .isNotEmpty) ...[
-              const SizedBox(height: 20),
+            // ── PERGUNTAS E RESPOSTAS ────────────────────────────────
+            const SizedBox(height: 20),
 
-              _secao('❓ Perguntas e Respostas'),
-
-              const SizedBox(height: 8),
-
-              ...s.perguntasRespostas
-                  .asMap()
-                  .entries
-                  .map((entry) {
-                final isPergunta =
-                    entry.key % 2 == 0;
-
-                return Container(
-                  width: double.infinity,
-
-                  margin:
-                      const EdgeInsets.only(
-                    bottom: 8,
-                  ),
-
-                  padding:
-                      const EdgeInsets.all(12),
-
-                  decoration: BoxDecoration(
-                    color: isPergunta
-                        ? const Color(0xFF6C63FF)
-                            .withOpacity(0.05)
-                        : const Color(0xFFF5F5FA),
-
-                    borderRadius:
-                        BorderRadius.circular(
-                      12,
-                    ),
-
-                    border: Border.all(
-                      color: isPergunta
-                          ? const Color(0xFF6C63FF)
-                              .withOpacity(0.2)
-                          : const Color(0xFFEEEEEE),
-                    ),
-                  ),
-
-                  child: Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-
-                    children: [
-                      Text(
-                        isPergunta
-                            ? '❓ '
-                            : '💬 ',
-
-                        style: const TextStyle(
-                          fontSize: 16,
-                        ),
-                      ),
-
-                      Expanded(
-                        child:
-                            Text(entry.value),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ],
+            PerguntasWidget(startupId: s.id),
 
             const SizedBox(height: 100),
           ],

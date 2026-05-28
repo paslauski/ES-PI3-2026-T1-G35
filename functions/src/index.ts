@@ -9,3 +9,4 @@ setGlobalOptions({ region: "southamerica-east1" });
 export { createStartup } from "./startups/handlers/createStartup";
 export { listStartups } from "./startups/handlers/listStartups";
 export { comprarTokens } from "./startups/handlers/comprarTokens";
+export { enviarPergunta } from "./startups/handlers/perguntas";
