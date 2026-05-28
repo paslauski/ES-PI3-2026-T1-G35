@@ -10,3 +10,5 @@ export { createStartup } from "./startups/handlers/createStartup";
 export { listStartups } from "./startups/handlers/listStartups";
 export { comprarTokens } from "./startups/handlers/comprarTokens";
 export { enviarPergunta } from "./startups/handlers/perguntas";
+export { criarOrdem } from "./startups/handlers/criarOrdem";
+export { cancelarOrdem } from "./startups/handlers/cancelarOrdem";

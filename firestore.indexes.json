@@ -1,0 +1,37 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "ordens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "startupId", "order": "ASCENDING" },
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "precoToken", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ordens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "startupId", "order": "ASCENDING" },
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "precoToken", "order": "DESCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ordens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "usuarioId", "order": "ASCENDING" },
+        { "fieldPath": "startupId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

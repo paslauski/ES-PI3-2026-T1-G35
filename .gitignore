@@ -1,3 +1,10 @@
 .env 
 node_modules
 dist
+
+# Firebase Functions compilado
+functions/lib/
+
+# Backend antigo
+backend/src/services/firebaseConfig.js
+backend/src/services/teste_conexao.js
