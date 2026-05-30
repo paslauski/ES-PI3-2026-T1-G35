@@ -252,9 +252,32 @@ class _StartupListPageState extends State<StartupListPage> {
                   ],
                 ),
               ),
-
+              /*
+              Botão Responsavél por depositar saldo
+              */
               const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
 
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _abrirDepositarSaldo();
+                  },
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Depositar Saldo'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6C63FF),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 10),
               /*
               Botão responsável pelo logout da conta.
               */
@@ -292,7 +315,109 @@ class _StartupListPageState extends State<StartupListPage> {
       ),
     );
   }
+  
+  /*
+Abre diálogo para o usuário depositar saldo fictício na carteira.
+*/
+Future<void> _abrirDepositarSaldo() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
 
+  final controller = TextEditingController();
+
+  await showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text(
+        '💰 Depositar Saldo',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Informe o valor a depositar na sua carteira simulada:',
+            style: TextStyle(color: Color(0xFF666666), fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              prefixText: 'R\$ ',
+              hintText: '0,00',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            final texto = controller.text
+                .replaceAll('R\$', '')
+                .replaceAll(' ', '')
+                .replaceAll(',', '.');
+
+            final valor = double.tryParse(texto) ?? 0;
+
+            if (valor <= 0) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Informe um valor válido.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+
+            // Busca saldo atual e soma o valor depositado
+            final doc = await FirebaseFirestore.instance
+                .collection('usuarios')
+                .doc(user.uid)
+                .get();
+
+            final saldoAtual =
+                (doc.data()?['saldo'] ?? 0).toDouble();
+
+            await FirebaseFirestore.instance
+                .collection('usuarios')
+                .doc(user.uid)
+                .update({'saldo': saldoAtual + valor});
+
+            if (ctx.mounted) Navigator.pop(ctx);
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    '✅ R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')} depositado com sucesso!',
+                  ),
+                  backgroundColor: const Color(0xFF00C897),
+                ),
+              );
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6C63FF),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: const Text('Confirmar'),
+        ),
+      ],
+    ),
+  );
+}
   /*
   Realiza logout do Firebase Authentication
   e retorna usuário para a tela inicial.

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/startup_model.dart';
 import '../../services/token_service.dart';
@@ -779,7 +780,110 @@ class _StartupDetailPageState
             /*
             Perguntas e respostas da startup.
             */
-            // ── PERGUNTAS E RESPOSTAS ────────────────────────────────
+
+            //  PERGUNTAS E RESPOSTAS 
+            const SizedBox(height: 20),
+
+            //  SEÇÃO DE VÍDEO 
+            if (s.videoUrl.isNotEmpty) ...[
+              const SizedBox(height: 20),
+
+              Text(
+                '🎬 Vídeo da Startup',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1A1A2E),
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              GestureDetector(
+                onTap: () async {
+                  final uri = Uri.parse(s.videoUrl);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(
+                      uri,
+                      mode: LaunchMode.externalApplication,
+                    );
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A2E),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF6C63FF),
+                      width: 2,
+                    ),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Thumbnail do YouTube
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Image.network(
+                          _getThumbnail(s.videoUrl),
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox(),
+                        ),
+                      ),
+
+                      // Overlay escuro
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: Colors.black.withOpacity(0.35),
+                        ),
+                      ),
+
+                      // Botão play
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6C63FF),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF6C63FF).withOpacity(0.4),
+                              blurRadius: 16,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 38,
+                        ),
+                      ),
+
+                      // Texto "Toque para assistir"
+                      Positioned(
+                        bottom: 12,
+                        child: Text(
+                          'Toque para assistir',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            //  FIM SEÇÃO DE VÍDEO 
+
             const SizedBox(height: 20),
 
             PerguntasWidget(startupId: s.id),
@@ -791,6 +895,26 @@ class _StartupDetailPageState
     );
   }
 
+   /*
+  Extrai a URL da thumbnail do YouTube a partir da URL do vídeo. 
+  Funciona com URLs no formato youtube.com/watch?v=ID e youtu.be/ID
+  */
+  String _getThumbnail(String url) {
+    String? videoId;
+
+   final uri = Uri.tryParse(url);
+   if (uri == null) return '';
+
+   if (uri.host.contains('youtu.be')) {
+     videoId = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+   } else {
+     videoId = uri.queryParameters['v'];
+   }
+
+   if (videoId == null || videoId.isEmpty) return '';
+
+   return 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+  }
   /*
   Widget padrão para títulos de seção.
   */

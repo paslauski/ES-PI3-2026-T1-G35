@@ -1,8 +1,9 @@
 // Mateus - Menu principal com navegação por abas
 import 'package:flutter/material.dart';
 import 'startups/startup_list_page.dart';
-import 'carteira_page.dart';
-import 'dashboard_page.dart';
+import 'tokens/minha_carteira_page.dart';
+import 'tokens/dashboard_page.dart';
+import 'tokens/balcao_tokens_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -16,10 +17,11 @@ class _MainPageState extends State<MainPage> {
 
   // Lista de telas — a ordem bate com os ícones do menu
   final List<Widget> _telas = const [
-    StartupListPage(),
-    CarteiraPage(),
-    DashboardPage(),
-  ];
+  StartupListPage(),
+  MinhaCarteiraPage(),
+  BalcaoTokensPage(),
+  DashboardPage(),
+];
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +50,11 @@ class _MainPageState extends State<MainPage> {
             icon: Icon(Icons.account_balance_wallet_outlined),
             activeIcon: Icon(Icons.account_balance_wallet),
             label: 'Carteira',
+          ),
+          BottomNavigationBarItem(        
+            icon: Icon(Icons.storefront_outlined),
+            activeIcon: Icon(Icons.storefront),
+            label: 'Balcão',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart_outlined),

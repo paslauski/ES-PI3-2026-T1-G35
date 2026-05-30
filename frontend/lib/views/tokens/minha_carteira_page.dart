@@ -42,7 +42,245 @@ class MinhaCarteiraPage extends StatelessWidget {
   */
   double _toDouble(dynamic v) =>
       double.tryParse((v ?? 0).toString()) ?? 0;
+      
+   Future<void> _abrirCancelado(BuildContext context) async {
+   await showDialog(
+     context: context,
+     barrierDismissible: false,
+     builder: (ctx) => AlertDialog(
+       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+       titlePadding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+       title: Row(
+         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+         children: [
+           const Text(
+             'Depósito cancelado',
+             style: TextStyle(
+               fontWeight: FontWeight.bold,
+               fontSize: 16,
+               color: Color(0xFFFF4D4D),
+             ),
+           ),
+           IconButton(
+             icon: const Icon(Icons.close),
+             onPressed: () => Navigator.pop(ctx),
+           ),
+         ],
+       ),
+       content: Column(
+         mainAxisSize: MainAxisSize.min,
+         children: const [
+           SizedBox(height: 8),
+           Icon(Icons.cancel_outlined, color: Color(0xFFFF4D4D), size: 56),
+           SizedBox(height: 12),
+           Text(
+             'O depósito foi cancelado pois a identidade não foi confirmada.',
+             textAlign: TextAlign.center,
+             style: TextStyle(color: Color(0xFF666666), fontSize: 13),
+           ),
+         ],
+       ),
+     ),
+   );
+ }
 
+ Future<void> _confirmarIdentidade(
+   BuildContext context,
+   String uid,
+   double valor,
+ ) async {
+   final user = FirebaseAuth.instance.currentUser;
+   final email = user?.email ?? 'email não encontrado';
+
+   await showDialog( 
+     context: context,
+     barrierDismissible: false,
+     builder: (ctx) => AlertDialog(
+       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+       title: const Text(
+         '🔐 Confirmar identidade',
+         style: TextStyle(fontWeight: FontWeight.bold),
+       ),
+       content: Column(
+         mainAxisSize: MainAxisSize.min,
+         children: [
+           const Text(
+             'Você está depositando como:',
+             style: TextStyle(color: Color(0xFF666666), fontSize: 13),
+           ),
+           const SizedBox(height: 12),
+           Container(
+             width: double.infinity,
+             padding: const EdgeInsets.all(14),
+             decoration: BoxDecoration(
+               color: const Color(0xFFF5F5FA),
+               borderRadius: BorderRadius.circular(12),
+               border: Border.all(color: const Color(0xFFEEEEEE)),
+             ),
+             child: Text(
+               email,
+               textAlign: TextAlign.center,
+               style: const TextStyle(
+                 fontWeight: FontWeight.bold,
+                 fontSize: 14,
+                 color: Color(0xFF1A1A2E),
+               ),
+             ),
+           ),
+           const SizedBox(height: 12),
+           const Text(
+             'É você mesmo?',
+             style: TextStyle(
+               fontSize: 14,
+               fontWeight: FontWeight.w600,
+               color: Color(0xFF1A1A2E),
+             ),
+           ),
+         ],
+       ),
+       actions: [
+         SizedBox(
+           width: double.infinity,
+           child: OutlinedButton(
+             onPressed: () async {
+               Navigator.pop(ctx);
+               await _abrirCancelado(context);
+             },
+             style: OutlinedButton.styleFrom(
+               foregroundColor: const Color(0xFFFF4D4D),
+               side: const BorderSide(color: Color(0xFFFF4D4D)),
+               padding: const EdgeInsets.symmetric(vertical: 14),
+               shape: RoundedRectangleBorder(
+                 borderRadius: BorderRadius.circular(14),
+               ),
+             ),
+             child: const Text('Não sou eu'),
+           ),
+         ),
+         const SizedBox(height: 8),
+         SizedBox(
+           width: double.infinity,
+           child: ElevatedButton(
+             onPressed: () async {
+
+               final doc = await FirebaseFirestore.instance
+                   .collection('usuarios')
+                   .doc(uid)
+                   .get();
+ 
+               final saldoAtual =
+                   (doc.data()?['saldo'] ?? 0).toDouble();
+ 
+               await FirebaseFirestore.instance
+                   .collection('usuarios')
+                   .doc(uid)
+                   .update({'saldo': saldoAtual + valor});
+ 
+               if (ctx.mounted) Navigator.pop(ctx);
+ 
+               if (context.mounted) {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   SnackBar(
+                     content: Text(
+                       '✅ R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')} depositado!',
+                     ),
+                     backgroundColor: const Color(0xFF00C897),
+                   ),
+                 );
+               }
+             },
+             style: ElevatedButton.styleFrom(
+               backgroundColor: const Color(0xFF6C63FF),
+               foregroundColor: Colors.white,
+               padding: const EdgeInsets.symmetric(vertical: 14),
+               shape: RoundedRectangleBorder(
+                 borderRadius: BorderRadius.circular(14),
+               ),
+             ),
+             child: const Text('Sou eu'),
+           ),
+         ),
+       ],
+     ),
+   );
+ }
+   /*
+  ABRE DIALOGO PARA DEPOSITAR SALDO
+  */
+  Future<void> _abrirDepositar(BuildContext context, String uid) async {
+   final controller = TextEditingController();
+
+   await showDialog(
+     context: context,
+     builder: (ctx) => AlertDialog(
+       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+       title: const Text(
+         '💰 Depositar Saldo',
+         style: TextStyle(fontWeight: FontWeight.bold),
+       ),
+       content: Column(
+         mainAxisSize: MainAxisSize.min,
+         children: [
+           const Text(
+             'Informe o valor a depositar na sua carteira simulada:',
+             style: TextStyle(color: Color(0xFF666666), fontSize: 13),
+           ),
+           const SizedBox(height: 16),
+           TextField(
+             controller: controller,
+             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+             decoration: InputDecoration(
+               prefixText: 'R\$ ',
+               hintText: '0,00',
+               border: OutlineInputBorder(
+                 borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+         ],
+       ),
+       actions: [
+         TextButton(
+           onPressed: () => Navigator.pop(ctx),
+           child: const Text('Cancelar'),
+         ),
+         ElevatedButton(
+           onPressed: () async {
+             final texto = controller.text
+                 .replaceAll('R\$', '')
+                 .replaceAll(' ', '')
+                 .replaceAll(',', '.');
+
+             final valor = double.tryParse(texto) ?? 0;
+
+             if (valor <= 0) {
+               ScaffoldMessenger.of(context).showSnackBar(
+                 const SnackBar(
+                   content: Text('Informe um valor válido.'),
+                   backgroundColor: Colors.red,
+                 ),
+               );
+               return;
+             }
+
+           Navigator.pop(ctx);
+           await _confirmarIdentidade(context, uid, valor);
+
+           },
+           style: ElevatedButton.styleFrom(
+             backgroundColor: const Color(0xFF6C63FF),
+             foregroundColor: Colors.white,
+             shape: RoundedRectangleBorder(
+               borderRadius: BorderRadius.circular(12),
+             ),
+           ),
+           child: const Text('Confirmar'),
+         ),
+       ],
+     ),
+   );
+ }
+ 
   @override
   Widget build(BuildContext context) {
     // Usuário autenticado
@@ -50,7 +288,7 @@ class MinhaCarteiraPage extends StatelessWidget {
         FirebaseAuth.instance.currentUser;
 
     /*
-    Caso o usuário não esteja logado.
+    Caso o usuario não esteja logado.
     */
     if (user == null) {
       return Scaffold(
@@ -460,7 +698,27 @@ class MinhaCarteiraPage extends StatelessWidget {
                           ],
                         ),
                       ),
+                      
+                      const SizedBox(height: 14),
 
+                      //  BOTÃO DEPOSITAR
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _abrirDepositar(context, user.uid),
+                          icon: const Icon(Icons.add_circle_outline, size: 18),
+                          label: const Text('Depositar Saldo'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6C63FF),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // FIM BOTÃO DEPOSITAR 
                       /*
                       Título da lista.
                       */

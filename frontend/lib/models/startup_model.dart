@@ -18,6 +18,7 @@ class Startup {
   final String precoToken;
   final List<Socio> socios;
   final List<String> perguntasRespostas;
+  final String videoUrl;
 
   Startup({
     required this.id,
@@ -33,6 +34,7 @@ class Startup {
     this.precoToken = '',
     this.socios = const [],
     this.perguntasRespostas = const [],
+    this.videoUrl = '',
   });
 
   factory Startup.fromFirestore(Map<String, dynamic> data, String id) {
@@ -80,6 +82,7 @@ class Startup {
       precoToken: data['preco_token']?.toString() ?? '',
       socios: socios,
       perguntasRespostas: prs,
+      videoUrl: data['video_url']?.toString() ?? '',
     );
   }
 }
