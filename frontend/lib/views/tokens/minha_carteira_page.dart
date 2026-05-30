@@ -42,9 +42,125 @@ class MinhaCarteiraPage extends StatelessWidget {
   */
   double _toDouble(dynamic v) =>
       double.tryParse((v ?? 0).toString()) ?? 0;
-      
-   Future<void> _abrirCancelado(BuildContext context) async {
+
+    Future<void> _abrirSucessoSaldo(BuildContext context) async {
    await showDialog(
+     context: context,
+     barrierDismissible: false,
+     builder: (ctx) => AlertDialog(
+       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+       titlePadding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+       title: Row(
+         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+         children: [
+           const Expanded(child: SizedBox()),
+           IconButton(
+             icon: const Icon(Icons.close),
+             onPressed: () => Navigator.pop(ctx),
+           ),
+         ],
+       ),
+       content: Column(
+         mainAxisSize: MainAxisSize.min,
+         children: const [
+           Icon(Icons.check_circle_outline, color: Color(0xFF00C897), size: 72),
+           SizedBox(height: 16),
+           Text(
+             'Saldo Adicionado com sucesso!',
+             textAlign: TextAlign.center,
+             style: TextStyle(
+               fontWeight: FontWeight.bold,
+               fontSize: 18,
+               color: Color(0xFF1A1A2E),
+             ),
+           ),
+         ],
+       ),
+     ),
+   );
+ }
+
+ Future<void> _abrirQrCode(
+   BuildContext context,
+   String uid,
+   double valor,
+ ) async {
+   await showDialog(
+     context: context,
+     barrierDismissible: false,
+     builder: (ctx) => AlertDialog(
+       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+       title: const Text(
+         '📲 QR Code de Pagamento',
+         style: TextStyle(fontWeight: FontWeight.bold),
+         textAlign: TextAlign.center,
+       ),
+       content: Column(
+         mainAxisSize: MainAxisSize.min,
+         children: [
+           const Text(
+             'Escaneie o QR Code para concluir o depósito:',
+             textAlign: TextAlign.center,
+             style: TextStyle(color: Color(0xFF666666), fontSize: 13),
+           ),
+           const SizedBox(height: 20),
+           Container(
+             width: 200,
+             height: 200,
+             decoration: BoxDecoration(
+               border: Border.all(color: const Color(0xFF6C63FF), width: 2),
+               borderRadius: BorderRadius.circular(12),
+             ),
+             child: ClipRRect(
+               borderRadius: BorderRadius.circular(10),
+               child: CustomPaint(
+                 painter: _QrCodePainter(),
+               ),
+             ),
+           ),
+           const SizedBox(height: 20),
+           SizedBox(
+             width: double.infinity,
+             child: ElevatedButton(
+               onPressed: () async {
+                 final doc = await FirebaseFirestore.instance
+                     .collection('usuarios')
+                     .doc(uid)
+                     .get();
+
+                 final saldoAtual =
+                     (doc.data()?['saldo'] ?? 0).toDouble();
+ 
+                 await FirebaseFirestore.instance
+                     .collection('usuarios')
+                     .doc(uid)
+                     .update({'saldo': saldoAtual + valor});
+ 
+                 if (ctx.mounted) Navigator.pop(ctx);
+ 
+                 if (context.mounted) {
+                   await _abrirSucessoSaldo(context);
+                 }
+               },
+               style: ElevatedButton.styleFrom(
+                 backgroundColor: const Color(0xFF6C63FF),
+                 foregroundColor: Colors.white,
+                 padding: const EdgeInsets.symmetric(vertical: 14),
+                 shape: RoundedRectangleBorder(
+                   borderRadius: BorderRadius.circular(14),
+                 ),
+               ),
+               child: const Text('Transação realizada'),
+             ),
+           ),
+         ],
+       ),
+     ),
+   ); 
+ }
+
+   Future<void> _abrirCancelado(BuildContext context) async {
+    await showDialog(
      context: context,
      barrierDismissible: false,
      builder: (ctx) => AlertDialog(
@@ -163,31 +279,10 @@ class MinhaCarteiraPage extends StatelessWidget {
            child: ElevatedButton(
              onPressed: () async {
 
-               final doc = await FirebaseFirestore.instance
-                   .collection('usuarios')
-                   .doc(uid)
-                   .get();
- 
-               final saldoAtual =
-                   (doc.data()?['saldo'] ?? 0).toDouble();
- 
-               await FirebaseFirestore.instance
-                   .collection('usuarios')
-                   .doc(uid)
-                   .update({'saldo': saldoAtual + valor});
- 
-               if (ctx.mounted) Navigator.pop(ctx);
- 
-               if (context.mounted) {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                   SnackBar(
-                     content: Text(
-                       '✅ R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')} depositado!',
-                     ),
-                     backgroundColor: const Color(0xFF00C897),
-                   ),
-                 );
-               }
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (context.mounted) {
+               await _abrirQrCode(context, uid, valor);
+              }
              },
              style: ElevatedButton.styleFrom(
                backgroundColor: const Color(0xFF6C63FF),
@@ -1239,4 +1334,54 @@ class MinhaCarteiraPage extends StatelessWidget {
 
     return precos;
   }
+}
+
+class _QrCodePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = const Color(0xFF1A1A2E);
+    final bg = Paint()..color = Colors.white;
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bg);
+
+    const modules = 21;
+    final cellSize = size.width / modules;
+
+    final pattern = [
+      [1,1,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,1,1,0,1],
+      [1,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,0,0,1,0,1],
+      [1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,0,1],
+      [1,0,1,1,1,0,1,0,0,1,1,0,0,0,1,1,1,0,1,0,0],
+      [1,0,1,1,1,0,1,0,1,1,0,1,1,0,1,1,1,0,1,1,0],
+      [1,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,1,0,1],
+      [1,1,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,1,1,0,1],
+      [0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,0,1,0],
+      [1,0,1,1,0,1,1,1,0,0,1,1,1,0,1,1,0,1,1,0,1],
+      [0,1,0,1,1,0,0,0,1,0,0,1,0,1,1,0,1,0,0,1,0],
+      [1,1,0,0,1,1,1,1,0,1,1,0,1,1,0,0,1,1,0,0,1],
+      [0,0,1,0,0,1,0,1,1,0,0,1,0,0,1,0,0,1,0,1,1],
+      [1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,0],
+      [0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,0,1,1],
+      [1,1,1,1,1,1,1,0,1,1,0,0,1,0,1,1,1,1,1,0,1],
+      [1,0,0,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,1,1,0],
+      [1,0,1,1,1,0,1,1,1,0,0,1,1,0,1,1,1,0,1,0,1],
+      [1,0,1,1,1,0,1,0,0,1,0,0,0,1,1,1,1,0,1,1,0],
+      [1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,0,0,0,1,0,1],
+      [1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,1,0,1,0,1,0],
+      [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,0,1,0,1],
+    ];
+
+    for (int row = 0; row < modules; row++) {
+      for (int col = 0; col < modules; col++) {
+        if (pattern[row][col] == 1) {
+          canvas.drawRect(
+            Rect.fromLTWH(col * cellSize, row * cellSize, cellSize, cellSize),
+            paint,
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
