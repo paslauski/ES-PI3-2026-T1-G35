@@ -20,7 +20,9 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
   List<QueryDocumentSnapshot> _todasStartups = [];
 
   // REGIÃO CORRETA das Cloud Functions
-  final _functions = FirebaseFunctions.instanceFor(region: 'southamerica-east1');
+  final _functions = FirebaseFunctions.instanceFor(
+    region: 'southamerica-east1',
+  );
 
   String _fmt(dynamic v) {
     final n = double.tryParse((v ?? 0).toString()) ?? 0;
@@ -28,12 +30,21 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
   }
 
   double _toDouble(dynamic v, [double def = 0]) =>
-      double.tryParse(v.toString().replaceAll('R\$', '').replaceAll(' ', '').replaceAll(',', '.')) ?? def;
+      double.tryParse(
+        v
+            .toString()
+            .replaceAll('R\$', '')
+            .replaceAll(' ', '')
+            .replaceAll(',', '.'),
+      ) ??
+      def;
 
   String _gerarSimbolo(String nome) {
     final p = nome.trim().split(' ');
     if (p.length >= 2) return (p[0][0] + p[1][0]).toUpperCase();
-    return nome.length >= 3 ? nome.substring(0, 3).toUpperCase() : nome.toUpperCase();
+    return nome.length >= 3
+        ? nome.substring(0, 3).toUpperCase()
+        : nome.toUpperCase();
   }
 
   // ── CRIAR ORDEM VIA BACKEND ──────────────────────────────────
@@ -51,16 +62,22 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
       });
       if (!mounted) return;
       final match = result.data['match'] == true;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(result.data['mensagem'] ?? 'OK'),
-        backgroundColor: match ? const Color(0xFF6C63FF) : const Color(0xFF00C897),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.data['mensagem'] ?? 'OK'),
+          backgroundColor: match
+              ? const Color(0xFF6C63FF)
+              : const Color(0xFF00C897),
+        ),
+      );
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ErrorTranslator.traduzir(e)),
-        backgroundColor: Colors.red,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ErrorTranslator.traduzir(e)),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
@@ -73,16 +90,20 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
       final fn = _functions.httpsCallable('cancelarOrdem');
       await fn.call({'ordemId': ordemId});
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Ordem cancelada.'),
-        backgroundColor: Colors.orange,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ordem cancelada.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ErrorTranslator.traduzir(e)),
-        backgroundColor: Colors.red,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ErrorTranslator.traduzir(e)),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -98,40 +119,67 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
         builder: (ctx, setD) {
           final total = quantidade * preco;
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text(isCompra ? '🛒 Ordem de Compra' : '📤 Ordem de Venda',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(
+              isCompra ? '🛒 Ordem de Compra' : '📤 Ordem de Venda',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_nomeStartup, style: const TextStyle(color: Color(0xFF888888))),
+                Text(
+                  _nomeStartup,
+                  style: const TextStyle(color: Color(0xFF888888)),
+                ),
                 const SizedBox(height: 16),
-                const Text('Preço por token (R\$):',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF555555))),
+                const Text(
+                  'Preço por token (R\$):',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF555555)),
+                ),
                 const SizedBox(height: 6),
                 TextField(
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: InputDecoration(
                     hintText: preco.toStringAsFixed(2),
                     prefixText: 'R\$ ',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
-                  onChanged: (v) => setD(() => preco = _toDouble(v, _precoToken)),
+                  onChanged: (v) =>
+                      setD(() => preco = _toDouble(v, _precoToken)),
                 ),
                 const SizedBox(height: 16),
-                const Text('Quantidade:', style: TextStyle(fontSize: 13, color: Color(0xFF555555))),
+                const Text(
+                  'Quantidade:',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF555555)),
+                ),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      onPressed: quantidade > 1 ? () => setD(() => quantidade--) : null,
+                      onPressed: quantidade > 1
+                          ? () => setD(() => quantidade--)
+                          : null,
                       icon: const Icon(Icons.remove_circle_outline, size: 28),
                       color: const Color(0xFF6C63FF),
                     ),
-                    Text('$quantidade',
-                        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+                    Text(
+                      '$quantidade',
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     IconButton(
                       onPressed: () => setD(() => quantidade++),
                       icon: const Icon(Icons.add_circle_outline, size: 28),
@@ -141,34 +189,51 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
-                    color: (isCompra ? const Color(0xFF00C897) : Colors.red).withOpacity(0.1),
+                    color: (isCompra ? const Color(0xFF00C897) : Colors.red)
+                        .withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text('Total: ${_fmt(total)}',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isCompra ? const Color(0xFF00C897) : Colors.red)),
+                  child: Text(
+                    'Total: ${_fmt(total)}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isCompra ? const Color(0xFF00C897) : Colors.red,
+                    ),
+                  ),
                 ),
               ],
             ),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancelar', style: TextStyle(color: Color(0xFF888888)))),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(color: Color(0xFF888888)),
+                ),
+              ),
               ElevatedButton(
                 onPressed: () {
                   Navigator.pop(ctx);
                   _criarOrdem(tipo, quantidade, preco);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isCompra ? const Color(0xFF00C897) : Colors.red,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: isCompra
+                      ? const Color(0xFF00C897)
+                      : Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: Text(isCompra ? 'Criar Ordem de Compra' : 'Criar Ordem de Venda',
-                    style: const TextStyle(color: Colors.white)),
+                child: Text(
+                  isCompra ? 'Criar Ordem de Compra' : 'Criar Ordem de Venda',
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
             ],
           );
@@ -184,7 +249,31 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Balcão de Tokens'),
-        automaticallyImplyLeading: false,
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+
+        // 🔹 Setinha para voltar para a tela anterior
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+
+        // 🔹 Botão para voltar direto para a Home
+        actions: [
+          IconButton(
+            tooltip: 'Home',
+            icon: const Icon(Icons.home_outlined),
+            onPressed: () {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/home',
+                (route) => false,
+              );
+            },
+          ),
+        ],
       ),
       backgroundColor: const Color(0xFFF5F5FA),
       body: StreamBuilder<QuerySnapshot>(
@@ -205,8 +294,13 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── SELETOR DE STARTUP ───────────────────────
-                const Text('Selecione a Startup',
-                    style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1A1A2E))),
+                const Text(
+                  'Selecione a Startup',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A2E),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
@@ -230,7 +324,9 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
                         );
                       }).toList(),
                       onChanged: (value) {
-                        final doc = _todasStartups.firstWhere((e) => e.id == value);
+                        final doc = _todasStartups.firstWhere(
+                          (e) => e.id == value,
+                        );
                         final d = doc.data() as Map<String, dynamic>;
                         final nome = (d['nome'] ?? '').toString();
                         setState(() {
@@ -253,13 +349,20 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
                         .doc(_startupId)
                         .snapshots(),
                     builder: (context, cotSnap) {
-                      final cotacao = cotSnap.data?.data() as Map<String, dynamic>?;
+                      final cotacao =
+                          cotSnap.data?.data() as Map<String, dynamic>?;
                       final ultimoPreco = cotacao != null
                           ? _toDouble(cotacao['ultimoPreco'], _precoToken)
                           : _precoToken;
-                      final maior = cotacao != null ? _toDouble(cotacao['maiorPrecoHoje']) : 0.0;
-                      final menor = cotacao != null ? _toDouble(cotacao['menorPrecoHoje']) : 0.0;
-                      final volume = cotacao != null ? (cotacao['volumeHoje'] ?? 0) : 0;
+                      final maior = cotacao != null
+                          ? _toDouble(cotacao['maiorPrecoHoje'])
+                          : 0.0;
+                      final menor = cotacao != null
+                          ? _toDouble(cotacao['menorPrecoHoje'])
+                          : 0.0;
+                      final volume = cotacao != null
+                          ? (cotacao['volumeHoje'] ?? 0)
+                          : 0;
 
                       return Container(
                         width: double.infinity,
@@ -275,14 +378,29 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('$_nomeStartup (${_gerarSimbolo(_nomeStartup)})',
-                                style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                            Text(
+                              '$_nomeStartup (${_gerarSimbolo(_nomeStartup)})',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text(_fmt(ultimoPreco),
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
-                            const Text('último preço negociado',
-                                style: TextStyle(color: Colors.white54, fontSize: 11)),
+                            Text(
+                              _fmt(ultimoPreco),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Text(
+                              'último preço negociado',
+                              style: TextStyle(
+                                color: Colors.white54,
+                                fontSize: 11,
+                              ),
+                            ),
                             const SizedBox(height: 12),
                             Row(
                               children: [
@@ -314,9 +432,12 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF00C897),
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                               ),
                             ),
@@ -329,9 +450,12 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                               ),
                             ),
@@ -343,9 +467,21 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
                   // ── FILAS DE ORDENS ──────────────────────────
                   Row(
                     children: [
-                      Expanded(child: _filaOrdens('venda', 'Ordens de Venda', Colors.red)),
+                      Expanded(
+                        child: _filaOrdens(
+                          'venda',
+                          'Ordens de Venda',
+                          Colors.red,
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: _filaOrdens('compra', 'Ordens de Compra', const Color(0xFF00C897))),
+                      Expanded(
+                        child: _filaOrdens(
+                          'compra',
+                          'Ordens de Compra',
+                          const Color(0xFF00C897),
+                        ),
+                      ),
                     ],
                   ),
 
@@ -368,8 +504,14 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(titulo,
-            style: TextStyle(fontWeight: FontWeight.w700, color: cor, fontSize: 13)),
+        Text(
+          titulo,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: cor,
+            fontSize: 13,
+          ),
+        ),
         const SizedBox(height: 6),
         StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
@@ -386,11 +528,16 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
               return Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFEEEEEE))),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFEEEEEE)),
+                ),
                 child: const Center(
-                    child: Text('Sem ordens', style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 12))),
+                  child: Text(
+                    'Sem ordens',
+                    style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 12),
+                  ),
+                ),
               );
             }
 
@@ -403,11 +550,33 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     child: Row(
                       children: [
-                        Expanded(child: Text('Qtd', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w600))),
-                        Expanded(child: Text('Preço', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w600))),
+                        Expanded(
+                          child: Text(
+                            'Qtd',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'Preço',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -417,14 +586,29 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
                     final qtd = d['quantRestante'] ?? d['quantidade'] ?? 0;
                     final preco = _toDouble(d['precoToken']);
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
                       child: Row(
                         children: [
-                          Expanded(child: Text('$qtd', style: const TextStyle(fontSize: 12))),
                           Expanded(
-                              child: Text(_fmt(preco),
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(fontSize: 12, color: cor, fontWeight: FontWeight.w600))),
+                            child: Text(
+                              '$qtd',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              _fmt(preco),
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: cor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     );
@@ -443,8 +627,13 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Minhas Ordens Abertas',
-            style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1A1A2E))),
+        const Text(
+          'Minhas Ordens Abertas',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1A1A2E),
+          ),
+        ),
         const SizedBox(height: 8),
         StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
@@ -460,11 +649,15 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFEEEEEE))),
-                child: const Text('Nenhuma ordem aberta.',
-                    style: TextStyle(color: Color(0xFFAAAAAA)), textAlign: TextAlign.center),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFEEEEEE)),
+                ),
+                child: const Text(
+                  'Nenhuma ordem aberta.',
+                  style: TextStyle(color: Color(0xFFAAAAAA)),
+                  textAlign: TextAlign.center,
+                ),
               );
             }
 
@@ -484,30 +677,51 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: cor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text(isCompra ? 'COMPRA' : 'VENDA',
-                            style: TextStyle(color: cor, fontWeight: FontWeight.bold, fontSize: 11)),
+                        child: Text(
+                          isCompra ? 'COMPRA' : 'VENDA',
+                          style: TextStyle(
+                            color: cor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${d['quantRestante'] ?? d['quantidade']} tokens',
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                            Text(_fmt(d['precoToken']),
-                                style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
+                            Text(
+                              '${d['quantRestante'] ?? d['quantidade']} tokens',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                            Text(
+                              _fmt(d['precoToken']),
+                              style: const TextStyle(
+                                color: Color(0xFF888888),
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                       TextButton(
                         onPressed: () => _cancelarOrdem(doc.id),
-                        child: const Text('Cancelar',
-                            style: TextStyle(color: Colors.red, fontSize: 12)),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(color: Colors.red, fontSize: 12),
+                        ),
                       ),
                     ],
                   ),
@@ -530,11 +744,19 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
         ),
         child: Column(
           children: [
-            Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white70, fontSize: 10),
+            ),
             const SizedBox(height: 2),
-            Text(valor,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+            Text(
+              valor,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
           ],
         ),
       ),
