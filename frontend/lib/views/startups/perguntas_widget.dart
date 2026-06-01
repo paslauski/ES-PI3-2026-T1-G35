@@ -4,6 +4,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../utils/error_translator.dart';
 
 /*
 Widget responsável pela seção de perguntas e respostas de uma startup.
@@ -133,7 +134,7 @@ class _PerguntasWidgetState extends State<PerguntasWidget> {
       _ctrl.clear();
       _snack('✅ Pergunta enviada com sucesso!');
     } catch (e) {
-      _snack('Erro ao enviar: ${e.toString()}', erro: true);
+      _snack(ErrorTranslator.traduzir(e), erro: true);
     } finally {
       if (mounted) setState(() => _enviando = false);
     }

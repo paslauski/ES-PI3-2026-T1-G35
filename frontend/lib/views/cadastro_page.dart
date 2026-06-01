@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import '../models/usuario_model.dart';
 import '../services/auth_service.dart';
+import '../../utils/error_translator.dart';
 
 // 🔹 StatefulWidget = tela que pode mudar (estado dinâmico)
 class CadastroPage extends StatefulWidget {
@@ -78,7 +79,7 @@ class _CadastroPageState extends State<CadastroPage> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text(ErrorTranslator.traduzir(e)), backgroundColor: Colors.red),
       );
     } finally {
       if (!mounted) return;

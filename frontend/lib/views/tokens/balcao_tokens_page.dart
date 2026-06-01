@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import '../../utils/error_translator.dart';
 
 class BalcaoTokensPage extends StatefulWidget {
   const BalcaoTokensPage({super.key});
@@ -53,7 +54,7 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(e.message ?? 'Erro ao criar ordem.'),
+        content: Text(ErrorTranslator.traduzir(e)),
         backgroundColor: Colors.red,
       ));
     } finally {
@@ -74,7 +75,7 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(e.message ?? 'Erro ao cancelar.'),
+        content: Text(ErrorTranslator.traduzir(e)),
         backgroundColor: Colors.red,
       ));
     }

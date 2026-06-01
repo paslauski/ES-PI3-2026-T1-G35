@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import '../models/usuario_model.dart';
 import '../services/auth_service.dart';
+import '../../utils/error_translator.dart';
 
 // 🔹 StatefulWidget = tela que muda de estado
 // Ex: loading, erro, texto digitado
@@ -88,7 +89,7 @@ class _CadastroPageState extends State<CadastroPage> {
 
       // mostra erro caso algo dê errado
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text(ErrorTranslator.traduzir(e)), backgroundColor: Colors.red),
       );
     } finally {
       if (!mounted) return;

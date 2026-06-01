@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../models/startup_model.dart';
 import 'startup_detail_page.dart';
+import '../../utils/error_translator.dart';
 
 /*
 Tela responsável pelo catálogo principal de startups.
@@ -438,7 +439,7 @@ Future<void> _abrirDepositarSaldo() async {
       // Exibe erro caso logout falhe
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao sair: $e'),
+          content: Text(ErrorTranslator.traduzir(e)),
           backgroundColor: Colors.red,
         ),
       );

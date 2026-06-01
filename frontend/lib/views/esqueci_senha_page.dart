@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../../utils/error_translator.dart';
 
 // StatefulWidget = tela que muda de estado
 class EsqueciSenhaPage extends StatefulWidget {
@@ -70,7 +71,7 @@ class _EsqueciSenhaPageState extends State<EsqueciSenhaPage> {
 
       // mensagem de erro
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text(ErrorTranslator.traduzir(e)), backgroundColor: Colors.red),
       );
     } finally {
       if (!mounted) return;

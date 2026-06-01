@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/startup_model.dart';
 import '../../services/token_service.dart';
 import 'perguntas_widget.dart';
+import '../../utils/error_translator.dart';
 
 /*
 Tela responsável pela visualização detalhada da startup.
@@ -359,9 +360,8 @@ class _StartupDetailPageState
           .showSnackBar(
         SnackBar(
           content: Text(
-            'Erro: '
-            '${e.toString().replaceAll('Exception: ', '')}',
-          ),
+    ErrorTranslator.traduzir(e),
+  ),
 
           backgroundColor: Colors.red,
         ),
