@@ -4,6 +4,7 @@ import 'startups/startup_list_page.dart';
 import 'tokens/minha_carteira_page.dart';
 import 'tokens/dashboard_page.dart';
 import 'tokens/balcao_tokens_page.dart';
+import 'tokens/minhas_negociacoes_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -15,23 +16,21 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _abaSelecionada = 0;
 
-  // Lista de telas — a ordem bate com os ícones do menu
   final List<Widget> _telas = const [
-  StartupListPage(),
-  MinhaCarteiraPage(),
-  BalcaoTokensPage(),
-  DashboardPage(),
-];
+    StartupListPage(),
+    MinhaCarteiraPage(),
+    BalcaoTokensPage(),
+    MinhasNegociacoesPage(),
+    DashboardPage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Mostra a tela correspondente à aba selecionada
       body: IndexedStack(
         index: _abaSelecionada,
         children: _telas,
       ),
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _abaSelecionada,
         onTap: (index) => setState(() => _abaSelecionada = index),
@@ -51,10 +50,15 @@ class _MainPageState extends State<MainPage> {
             activeIcon: Icon(Icons.account_balance_wallet),
             label: 'Carteira',
           ),
-          BottomNavigationBarItem(        
+          BottomNavigationBarItem(
             icon: Icon(Icons.storefront_outlined),
             activeIcon: Icon(Icons.storefront),
             label: 'Balcão',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long_outlined),
+            activeIcon: Icon(Icons.receipt_long),
+            label: 'Negociações',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart_outlined),

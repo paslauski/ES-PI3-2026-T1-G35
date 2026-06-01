@@ -1,7 +1,5 @@
 // Mateus - Backend: criar ordem de compra ou venda no balcão P2P
-// Lógica completa: valida → cria ordem → tenta match automático
-// CORRIGIDO: carteiras acessadas por ID direto dentro das transactions
-// CORRIGIDO: tokens de venda são reservados (descontados) ao entrar na fila
+// CORRIGIDO: todas as leituras da transaction agrupadas no início
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -37,7 +35,6 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
   const usuario = usuarioSnap.data()!;
   const valorTotal = quantidade * precoToken;
 
-  // ── VALIDAÇÃO DE COMPRA: tem saldo? ──────────────────────────
   if (tipo === "compra") {
     const saldo = Number(usuario.saldo ?? 0);
     if (saldo < valorTotal) {
@@ -48,17 +45,13 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
     }
   }
 
-  // ── VALIDAÇÃO DE VENDA: tem tokens? ──────────────────────────
   if (tipo === "venda") {
     const cartRef = db.collection("carteiras").doc(carteiraId(uid, startupId));
     const cartSnap = await cartRef.get();
-
     if (!cartSnap.exists) {
       throw new HttpsError("failed-precondition", "Você não possui tokens desta startup.");
     }
-
     const tokensDisponiveis = Number(cartSnap.data()?.quantidade ?? 0);
-
     if (tokensDisponiveis < quantidade) {
       throw new HttpsError(
         "failed-precondition",
@@ -67,7 +60,7 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
     }
   }
 
-  // ── TENTA MATCH AUTOMÁTICO ────────────────────────────────────
+  // ── BUSCA MATCH ────────────────────────────────────────────────
   let ordemContraria = null;
 
   if (tipo === "compra") {
@@ -81,9 +74,7 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
       .orderBy("criadoEm", "asc")
       .limit(1)
       .get();
-
     if (!vendasSnap.empty) ordemContraria = vendasSnap.docs[0];
-
   } else {
     const comprasSnap = await db
       .collection("ordens")
@@ -95,7 +86,6 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
       .orderBy("criadoEm", "asc")
       .limit(1)
       .get();
-
     if (!comprasSnap.empty) ordemContraria = comprasSnap.docs[0];
   }
 
@@ -110,30 +100,30 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
     const vendedorId  = tipo === "venda"  ? uid : dadosContraria.usuarioId;
 
     await db.runTransaction(async (tx) => {
-      const compradorRef = db.collection("usuarios").doc(compradorId);
-      const vendedorRef  = db.collection("usuarios").doc(vendedorId);
-
-      const cartCompRef = db.collection("carteiras").doc(carteiraId(compradorId, startupId));
-      const cartVendRef = db.collection("carteiras").doc(carteiraId(vendedorId, startupId));
+      // ── TODAS AS LEITURAS PRIMEIRO ──────────────────────────
+      const compradorRef  = db.collection("usuarios").doc(compradorId);
+      const vendedorRef   = db.collection("usuarios").doc(vendedorId);
+      const cartCompRef   = db.collection("carteiras").doc(carteiraId(compradorId, startupId));
+      const cartVendRef   = db.collection("carteiras").doc(carteiraId(vendedorId, startupId));
+      const cotacaoRef    = db.collection("cotacoes").doc(startupId);
 
       const compradorSnap = await tx.get(compradorRef);
       const vendedorSnap  = await tx.get(vendedorRef);
       const cartCompSnap  = await tx.get(cartCompRef);
       const cartVendSnap  = await tx.get(cartVendRef);
+      const cotacaoSnap   = await tx.get(cotacaoRef);
 
+      // ── TODAS AS ESCRITAS DEPOIS ────────────────────────────
       const saldoComprador = Number(compradorSnap.data()?.saldo ?? 0);
       const saldoVendedor  = Number(vendedorSnap.data()?.saldo ?? 0);
 
-      // Transfere saldo
       tx.update(compradorRef, { saldo: saldoComprador - valorMatch });
       tx.update(vendedorRef,  { saldo: saldoVendedor  + valorMatch });
 
-      // Atualiza carteira do comprador (adiciona tokens)
+      // Carteira do comprador (recebe tokens)
       if (!cartCompSnap.exists) {
         tx.set(cartCompRef, {
-          usuarioId: compradorId,
-          startupId,
-          nomeStartup,
+          usuarioId: compradorId, startupId, nomeStartup,
           quantidade: qtdMatch,
           criadoEm: FieldValue.serverTimestamp(),
         });
@@ -142,8 +132,8 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
         tx.update(cartCompRef, { quantidade: qtdAtual + qtdMatch });
       }
 
-      // Atualiza carteira do vendedor (tokens já foram reservados ao criar a ordem)
-      // Só precisa atualizar se o vendedor é quem está criando a ordem agora (match imediato)
+      // Carteira do vendedor (tokens já foram reservados ao criar a ordem de venda)
+      // Só desconta se o vendedor está criando a ordem agora (match imediato)
       if (tipo === "venda" && cartVendSnap.exists) {
         const qtdAtual = Number(cartVendSnap.data()?.quantidade ?? 0);
         tx.update(cartVendRef, { quantidade: qtdAtual - qtdMatch });
@@ -164,11 +154,8 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
         criadoEm: FieldValue.serverTimestamp(),
       });
 
-      // Atualiza cotação do dia
+      // Atualiza cotação (leitura já feita acima)
       const hoje = new Date().toISOString().split("T")[0];
-      const cotacaoRef = db.collection("cotacoes").doc(startupId);
-      const cotacaoSnap = await tx.get(cotacaoRef);
-
       if (!cotacaoSnap.exists || cotacaoSnap.data()?.dataUltimaTrade !== hoje) {
         tx.set(cotacaoRef, {
           startupId, ultimoPreco: precoMatch,
@@ -210,7 +197,6 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
     await usuarioRef.update({ saldo: saldoAtual - valorTotal });
   }
 
-  // CORRIGIDO: reserva (desconta) tokens ao criar ordem de venda na fila
   if (tipo === "venda") {
     const cartRef = db.collection("carteiras").doc(carteiraId(uid, startupId));
     const cartSnap = await cartRef.get();
