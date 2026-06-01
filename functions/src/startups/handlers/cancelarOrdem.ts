@@ -37,8 +37,13 @@ export const cancelarOrdem = onCall({ cors: true }, async (request) => {
       tx.update(usuarioRef, { saldo: saldo + valorReservado });
     }
 
-    // Devolve tokens reservados se era ordem de venda
-    // (tokens já ficam na carteira, só marca como cancelada)
+    // CORRIGIDO: devolve tokens reservados se era ordem de venda
+    if (ordem.tipo === "venda") {
+      const cartRef = db.collection("carteiras").doc(`${uid}_${ordem.startupId}`);
+      const cartSnap = await tx.get(cartRef);
+      const qtdAtual = Number(cartSnap.data()?.quantidade ?? 0);
+      tx.update(cartRef, { quantidade: qtdAtual + ordem.quantRestante });
+    }
 
     tx.update(ordemRef, { status: "cancelada" });
   });

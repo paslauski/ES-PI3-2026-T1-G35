@@ -1,11 +1,11 @@
 // Mateus - Backend: criar ordem de compra ou venda no balcão P2P
 // Lógica completa: valida → cria ordem → tenta match automático
 // CORRIGIDO: carteiras acessadas por ID direto dentro das transactions
+// CORRIGIDO: tokens de venda são reservados (descontados) ao entrar na fila
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
-// Gera o ID da carteira igual ao usado no token_service.dart do Flutter
 function carteiraId(usuarioId: string, startupId: string): string {
   return `${usuarioId}_${startupId}`;
 }
@@ -16,7 +16,6 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
 
   const { startupId, nomeStartup, tipo, quantidade, precoToken } = request.data;
 
-  // Validações básicas
   if (!startupId || !tipo || !quantidade || !precoToken) {
     throw new HttpsError("invalid-argument", "Dados incompletos.");
   }
@@ -50,7 +49,6 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
   }
 
   // ── VALIDAÇÃO DE VENDA: tem tokens? ──────────────────────────
-  // CORREÇÃO: leitura por ID direto (fora de transaction, pode usar get() normal)
   if (tipo === "venda") {
     const cartRef = db.collection("carteiras").doc(carteiraId(uid, startupId));
     const cartSnap = await cartRef.get();
@@ -115,11 +113,9 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
       const compradorRef = db.collection("usuarios").doc(compradorId);
       const vendedorRef  = db.collection("usuarios").doc(vendedorId);
 
-      // CORREÇÃO: carteiras acessadas por ID direto — único jeito válido dentro de transaction
       const cartCompRef = db.collection("carteiras").doc(carteiraId(compradorId, startupId));
       const cartVendRef = db.collection("carteiras").doc(carteiraId(vendedorId, startupId));
 
-      // Todas as leituras primeiro (obrigatório no Firestore)
       const compradorSnap = await tx.get(compradorRef);
       const vendedorSnap  = await tx.get(vendedorRef);
       const cartCompSnap  = await tx.get(cartCompRef);
@@ -146,11 +142,11 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
         tx.update(cartCompRef, { quantidade: qtdAtual + qtdMatch });
       }
 
-      // Atualiza carteira do vendedor (remove tokens)
-      if (cartVendSnap.exists) {
+      // Atualiza carteira do vendedor (tokens já foram reservados ao criar a ordem)
+      // Só precisa atualizar se o vendedor é quem está criando a ordem agora (match imediato)
+      if (tipo === "venda" && cartVendSnap.exists) {
         const qtdAtual = Number(cartVendSnap.data()?.quantidade ?? 0);
-        const novaQtd = qtdAtual - qtdMatch;
-        tx.update(cartVendRef, { quantidade: novaQtd });
+        tx.update(cartVendRef, { quantidade: qtdAtual - qtdMatch });
       }
 
       // Atualiza status da ordem contrária
@@ -212,6 +208,14 @@ export const criarOrdem = onCall({ cors: true }, async (request) => {
   if (tipo === "compra") {
     const saldoAtual = Number(usuario.saldo ?? 0);
     await usuarioRef.update({ saldo: saldoAtual - valorTotal });
+  }
+
+  // CORRIGIDO: reserva (desconta) tokens ao criar ordem de venda na fila
+  if (tipo === "venda") {
+    const cartRef = db.collection("carteiras").doc(carteiraId(uid, startupId));
+    const cartSnap = await cartRef.get();
+    const qtdAtual = Number(cartSnap.data()?.quantidade ?? 0);
+    await cartRef.update({ quantidade: qtdAtual - quantidade });
   }
 
   await db.collection("ordens").add({

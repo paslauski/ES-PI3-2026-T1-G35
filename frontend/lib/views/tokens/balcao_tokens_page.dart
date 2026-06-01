@@ -19,6 +19,9 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
   bool _carregando = false;
   List<QueryDocumentSnapshot> _todasStartups = [];
 
+  // REGIÃO CORRETA das Cloud Functions
+  final _functions = FirebaseFunctions.instanceFor(region: 'southamerica-east1');
+
   String _fmt(dynamic v) {
     final n = double.tryParse((v ?? 0).toString()) ?? 0;
     return 'R\$ ${n.toStringAsFixed(2).replaceAll('.', ',')}';
@@ -37,7 +40,8 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
   Future<void> _criarOrdem(String tipo, int quantidade, double preco) async {
     setState(() => _carregando = true);
     try {
-      final fn = FirebaseFunctions.instance.httpsCallable('criarOrdem');
+      // CORRIGIDO: usa _functions com região correta
+      final fn = _functions.httpsCallable('criarOrdem');
       final result = await fn.call({
         'startupId': _startupId,
         'nomeStartup': _nomeStartup,
@@ -65,7 +69,8 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
   // ── CANCELAR ORDEM ───────────────────────────────────────────
   Future<void> _cancelarOrdem(String ordemId) async {
     try {
-      final fn = FirebaseFunctions.instance.httpsCallable('cancelarOrdem');
+      // CORRIGIDO: usa _functions com região correta
+      final fn = _functions.httpsCallable('cancelarOrdem');
       await fn.call({'ordemId': ordemId});
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -397,7 +402,6 @@ class _BalcaoTokensPageState extends State<BalcaoTokensPage> {
               ),
               child: Column(
                 children: [
-                  // Cabeçalho
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     child: Row(
