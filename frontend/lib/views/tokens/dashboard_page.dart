@@ -15,11 +15,9 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   String _periodoSelecionado = 'mensal';
 
-  String _fmt(double v) =>
-      'R\$ ${v.toStringAsFixed(2).replaceAll('.', ',')}';
+  String _fmt(double v) => 'R\$ ${v.toStringAsFixed(2).replaceAll('.', ',')}';
 
-  double _toDouble(dynamic v) =>
-      double.tryParse((v ?? 0).toString()) ?? 0;
+  double _toDouble(dynamic v) => double.tryParse((v ?? 0).toString()) ?? 0;
 
   DateTime _inicioPeriodo() {
     final agora = DateTime.now();
@@ -126,7 +124,9 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     final resultado = valorAtual - totalInvestido;
-    final percentual = totalInvestido == 0 ? 0.0 : (resultado / totalInvestido) * 100;
+    final percentual = totalInvestido == 0
+        ? 0.0
+        : (resultado / totalInvestido) * 100;
 
     // Busca categorias
     final categorias = await _buscarPorCategoria(carteiraSnap.docs);
@@ -144,7 +144,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<Map<String, double>> _buscarPorCategoria(
-      List<QueryDocumentSnapshot> docs) async {
+    List<QueryDocumentSnapshot> docs,
+  ) async {
     final Map<String, double> resultado = {};
     for (final doc in docs) {
       final d = doc.data() as Map<String, dynamic>;
@@ -158,7 +159,8 @@ class _DashboardPageState extends State<DashboardPage> {
             .get();
         if (snap.exists) {
           final data = snap.data() as Map<String, dynamic>;
-          final setor = (data['setor'] ?? data['categoria'] ?? 'Outros').toString();
+          final setor = (data['setor'] ?? data['categoria'] ?? 'Outros')
+              .toString();
           resultado[setor] = (resultado[setor] ?? 0) + valor;
         }
       } catch (_) {}
@@ -172,7 +174,10 @@ class _DashboardPageState extends State<DashboardPage> {
 
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Dashboard'), automaticallyImplyLeading: false),
+        appBar: AppBar(
+          title: const Text('Dashboard'),
+          automaticallyImplyLeading: false,
+        ),
         body: const Center(child: Text('Você precisa estar logado.')),
       );
     }
@@ -180,7 +185,31 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
-        automaticallyImplyLeading: false,
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+
+        // 🔹 Setinha para voltar para a tela anterior
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+
+        // 🔹 Botão para voltar direto para a Home
+        actions: [
+          IconButton(
+            tooltip: 'Home',
+            icon: const Icon(Icons.home_outlined),
+            onPressed: () {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/home',
+                (route) => false,
+              );
+            },
+          ),
+        ],
       ),
       backgroundColor: const Color(0xFFF5F5FA),
       body: FutureBuilder<Map<String, dynamic>>(
@@ -217,7 +246,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: _cardResumo(
                         titulo: 'Total Investido',
                         valor: _fmt(totalInvestido),
-                        variacao: '${positivo ? '+' : ''}${percentual.toStringAsFixed(1)}%',
+                        variacao:
+                            '${positivo ? '+' : ''}${percentual.toStringAsFixed(1)}%',
                         positivo: positivo,
                       ),
                     ),
@@ -287,15 +317,20 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Resumo dos Investimentos',
-                          style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1A1A2E))),
+                      const Text(
+                        'Resumo dos Investimentos',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A1A2E),
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       if (porStartup.isEmpty)
-                        const Text('Nenhum investimento ainda.',
-                            style: TextStyle(color: Color(0xFF888888)))
+                        const Text(
+                          'Nenhum investimento ainda.',
+                          style: TextStyle(color: Color(0xFF888888)),
+                        )
                       else
                         ...porStartup.entries.toList().asMap().entries.map((e) {
                           final cores = [
@@ -311,19 +346,29 @@ class _DashboardPageState extends State<DashboardPage> {
                             child: Row(
                               children: [
                                 Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                        color: cor, shape: BoxShape.circle)),
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: cor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
                                 const SizedBox(width: 10),
                                 Expanded(
-                                    child: Text(e.value.key,
-                                        style: const TextStyle(
-                                            color: Color(0xFF444444)))),
-                                Text(_fmt(e.value.value),
+                                  child: Text(
+                                    e.value.key,
                                     style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1A1A2E))),
+                                      color: Color(0xFF444444),
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  _fmt(e.value.value),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1A1A2E),
+                                  ),
+                                ),
                               ],
                             ),
                           );
@@ -334,8 +379,10 @@ class _DashboardPageState extends State<DashboardPage> {
 
                 const SizedBox(height: 20),
                 Center(
-                  child: Text('Dados baseados nas transações registradas.',
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                  child: Text(
+                    'Dados baseados nas transações registradas.',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                  ),
                 ),
               ],
             ),
@@ -367,11 +414,14 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(titulo,
-              style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1A2E))),
+          Text(
+            titulo,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A1A2E),
+            ),
+          ),
           const SizedBox(height: 20),
           child,
         ],
@@ -395,14 +445,19 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(titulo,
-              style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
+          Text(
+            titulo,
+            style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+          ),
           const SizedBox(height: 6),
-          Text(valor,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: Color(0xFF1A1A2E))),
+          Text(
+            valor,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Color(0xFF1A1A2E),
+            ),
+          ),
           const SizedBox(height: 4),
           Row(
             children: [
@@ -412,11 +467,14 @@ class _DashboardPageState extends State<DashboardPage> {
                 color: positivo ? const Color(0xFF00C897) : Colors.red,
               ),
               const SizedBox(width: 2),
-              Text(variacao,
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: positivo ? const Color(0xFF00C897) : Colors.red,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                variacao,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: positivo ? const Color(0xFF00C897) : Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ],
@@ -534,16 +592,20 @@ class _LinhaPainter extends CustomPainter {
         style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 9),
       );
       tp.layout();
-      tp.paint(canvas, Offset(x - tp.width / 2, size.height - paddingBottom + 6));
+      tp.paint(
+        canvas,
+        Offset(x - tp.width / 2, size.height - paddingBottom + 6),
+      );
     }
 
     canvas.drawCircle(points.last, 4, Paint()..color = const Color(0xFF6C63FF));
     canvas.drawCircle(
-        points.last,
-        6,
-        Paint()
-          ..color = const Color(0xFF6C63FF).withOpacity(0.25)
-          ..style = PaintingStyle.fill);
+      points.last,
+      6,
+      Paint()
+        ..color = const Color(0xFF6C63FF).withOpacity(0.25)
+        ..style = PaintingStyle.fill,
+    );
   }
 
   @override
@@ -603,9 +665,13 @@ class _BarrasPainter extends CustomPainter {
       );
       tp.layout();
       tp.paint(canvas, Offset(0, y - tp.height / 2));
-      canvas.drawLine(Offset(paddingLeft - 4, y),
-          Offset(size.width - paddingRight, y),
-          Paint()..color = const Color(0xFFEEEEEE)..strokeWidth = 1);
+      canvas.drawLine(
+        Offset(paddingLeft - 4, y),
+        Offset(size.width - paddingRight, y),
+        Paint()
+          ..color = const Color(0xFFEEEEEE)
+          ..strokeWidth = 1,
+      );
     }
 
     for (int i = 0; i < entries.length; i++) {
@@ -616,9 +682,11 @@ class _BarrasPainter extends CustomPainter {
       final x = paddingLeft + gap * i + (gap - barW) / 2;
       final y = paddingTop + drawH - barH;
       canvas.drawRRect(
-        RRect.fromRectAndCorners(Rect.fromLTWH(x, y, barW, barH),
-            topLeft: const Radius.circular(6),
-            topRight: const Radius.circular(6)),
+        RRect.fromRectAndCorners(
+          Rect.fromLTWH(x, y, barW, barH),
+          topLeft: const Radius.circular(6),
+          topRight: const Radius.circular(6),
+        ),
         Paint()..color = cor,
       );
       tp.text = TextSpan(
@@ -626,8 +694,10 @@ class _BarrasPainter extends CustomPainter {
         style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 9),
       );
       tp.layout();
-      tp.paint(canvas,
-          Offset(x + barW / 2 - tp.width / 2, size.height - paddingBottom + 6));
+      tp.paint(
+        canvas,
+        Offset(x + barW / 2 - tp.width / 2, size.height - paddingBottom + 6),
+      );
     }
   }
 
@@ -643,8 +713,10 @@ class _SemDados extends StatelessWidget {
     return const Padding(
       padding: EdgeInsets.all(16),
       child: Center(
-        child: Text('Nenhum investimento ainda.',
-            style: TextStyle(color: Color(0xFF888888))),
+        child: Text(
+          'Nenhum investimento ainda.',
+          style: TextStyle(color: Color(0xFF888888)),
+        ),
       ),
     );
   }
